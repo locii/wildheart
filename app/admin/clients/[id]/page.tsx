@@ -5,17 +5,22 @@ import type { AppointmentWithRelations, Client, IntakeForm } from "@/lib/supabas
 
 type Props = { params: Promise<{ id: string }> };
 
-// Accepts plain UUID or "firstname-lastname-uuid" slug format
-function extractUuid(param: string): string {
-  const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const match = param.match(uuidRe);
-  return match ? match[0] : param;
+// Accepts plain UUID or "firstname-lastname-shortid" slug format.
+// shortId is the first 8 hex chars of the UUID (no dashes).
+async function resolveClientId(param: string, supabase: ReturnType<typeof createServiceClient>): Promise<string | null> {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)) return param;
+  const shortId = param.split("-").pop() ?? "";
+  if (!/^[0-9a-f]{8}$/i.test(shortId)) return param;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase.from("clients") as any).select("id").ilike("id", `${shortId}%`).maybeSingle();
+  return data?.id ?? null;
 }
 
 export default async function ClientDetailPage({ params }: Props) {
   const { id: rawId } = await params;
-  const id = extractUuid(rawId);
   const supabase = createServiceClient();
+  const id = await resolveClientId(rawId, supabase);
+  if (!id) notFound();
 
   const [clientRes, appointmentsRes, intakeRes] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
