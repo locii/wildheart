@@ -150,6 +150,10 @@ export function ScheduleCalendar({
   const [selection, setSelection] = useState<Selection | null>(null);
   const [editingBlock, setEditingBlock] = useState<BlockEdit | null>(null);
   const [flyoutApptId, setFlyoutApptId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const pickerBtnRef = useRef<HTMLButtonElement>(null);
 
   const days = useMemo(() => {
     if (view === "day") return [anchorDate];
@@ -228,6 +232,24 @@ export function ScheduleCalendar({
   }, [days, locationFilter, locations]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    function onDown(e: MouseEvent) {
+      if (
+        pickerRef.current?.contains(e.target as Node) ||
+        pickerBtnRef.current?.contains(e.target as Node)
+      ) return;
+      setPickerOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [pickerOpen]);
+
+  function openPicker() {
+    setPickerYear(anchorDate.getFullYear());
+    setPickerOpen((o) => !o);
+  }
 
   function nav(dir: -1 | 1) {
     if (view === "month") setAnchorDate((d) => addMonths(d, dir));
@@ -324,7 +346,58 @@ export function ScheduleCalendar({
           <button onClick={() => nav(1)} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors">
             <ChevronRight className="h-4 w-4" />
           </button>
-          <span className="text-sm font-medium ml-2 hidden sm:block">{title}</span>
+          <div className="relative ml-2 hidden sm:block">
+            <button
+              ref={pickerBtnRef}
+              onClick={openPicker}
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              {title}
+            </button>
+            {pickerOpen && (
+              <div
+                ref={pickerRef}
+                className="absolute top-full left-0 mt-1.5 z-50 bg-card border rounded-xl shadow-lg p-3 w-52"
+              >
+                <div className="flex items-center justify-between mb-2.5">
+                  <button
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-sm font-semibold">{pickerYear}</span>
+                  <button
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, idx) => {
+                    const isActive = pickerYear === anchorDate.getFullYear() && idx === anchorDate.getMonth();
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setAnchorDate(new Date(pickerYear, idx, 1));
+                          setPickerOpen(false);
+                        }}
+                        className={`py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted/60 text-foreground"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
