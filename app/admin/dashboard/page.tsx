@@ -83,8 +83,6 @@ function DaySection({
     : format(date, "EEEE");
 
   const dateLabel = format(date, "d MMM");
-  const uniqueClients = new Set(appointments.map((a) => a.client.id)).size;
-
   return (
     <div className="mb-4">
       {/* Day header */}
@@ -93,9 +91,9 @@ function DaySection({
           {dayLabel}
         </span>
         <span className="text-xs text-gray-400">{dateLabel}</span>
-        {isCurrentDay && appointments.length > 0 && (
+        {appointments.length > 0 && (
           <span className="ml-auto text-[10px] font-medium bg-slate-700 rounded-full px-2 py-0.5 mr-2">
-            {appointments.length} session{appointments.length !== 1 ? "s" : ""} · {uniqueClients} client{uniqueClients !== 1 ? "s" : ""}
+            {appointments.length}
           </span>
         )}
       </div>
