@@ -35,21 +35,35 @@ export async function POST(req: NextRequest) {
   const emailList   = [...new Set(rows.map(r => r.email.toLowerCase()))];
   const startAtList = [...new Set(rows.map(r => r.startAt))];
 
+  // Chunk both queries — large CSVs exceed PostgREST's URL limit for .in() clauses
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [{ data: clientRows }, { data: existingApptRows }] = await Promise.all([
-    (supabase.from("clients") as any).select("id, email").in("email", emailList),
-    (supabase.from("appointments") as any).select("client_id, location_id, start_at").in("start_at", startAtList),
-  ]) as [{ data: ClientRow[] | null }, { data: { client_id: string; location_id: string; start_at: string }[] | null }];
+  const clientRowsAll: ClientRow[] = [];
+  for (let i = 0; i < emailList.length; i += 500) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from("clients") as any)
+      .select("id, email").in("email", emailList.slice(i, i + 500)) as { data: ClientRow[] | null };
+    (data ?? []).forEach(c => clientRowsAll.push(c));
+  }
+
+  type ExistingAppt = { client_id: string; location_id: string; start_at: string };
+  const existingApptAll: ExistingAppt[] = [];
+  for (let i = 0; i < startAtList.length; i += 500) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from("appointments") as any)
+      .select("client_id, location_id, start_at")
+      .in("start_at", startAtList.slice(i, i + 500)) as { data: ExistingAppt[] | null };
+    (data ?? []).forEach(a => existingApptAll.push(a));
+  }
 
   const clientIdByEmail = new Map(
-    (clientRows ?? []).map(c => [c.email.toLowerCase(), c.id]),
+    clientRowsAll.map(c => [c.email.toLowerCase(), c.id]),
   );
   // Deduplicate by client+time AND by location+time (guards against the no_overlap exclusion constraint)
   const existingByClientTime = new Set(
-    (existingApptRows ?? []).map(a => `${a.client_id}::${a.start_at}`),
+    existingApptAll.map(a => `${a.client_id}::${a.start_at}`),
   );
   const existingByLocationTime = new Set(
-    (existingApptRows ?? []).map(a => `${a.location_id}::${a.start_at}`),
+    existingApptAll.map(a => `${a.location_id}::${a.start_at}`),
   );
 
   const previewData = rows.map((row) => {

@@ -256,6 +256,35 @@ export function ReportsView() {
             </div>
           )}
 
+          {/* Appointments chart */}
+          {data.buckets.length > 0 && (
+            <div className="bg-card border rounded-2xl p-4 mb-6">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">Appointments by period</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={data.buckets} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(v: any) => [v, "Appointments"]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, background: "var(--color-card)", border: "1px solid var(--color-border)", color: "var(--color-foreground)" }}
+                    cursor={{ fill: "transparent" }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="var(--color-chart-4)"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={{ fill: "var(--color-chart-5)" }}
+                    isAnimationActive
+                    animationDuration={600}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
           {/* Breakdowns */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <BreakdownCard title="By type" rows={data.byType} />
