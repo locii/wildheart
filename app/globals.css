@@ -61,7 +61,7 @@
   --color-ring:                 oklch(0.85 0.15  78);
 
   /* ── Charts — fire gradient ──────────────────────────────────── */
-  --color-chart-1:              oklch(0.48 0.19  25);   /* Brick Ember   */
+  --color-chart-1:              #629677;   /* Brick Ember   */
   --color-chart-2:              oklch(0.52 0.18  35);   /* Red Ochre     */
   --color-chart-3:              oklch(0.62 0.17  45);   /* Autumn Leaf   */
   --color-chart-4:              oklch(0.72 0.16  58);   /* Dark Orange   */

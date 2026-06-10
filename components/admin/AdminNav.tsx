@@ -46,7 +46,7 @@ export function AdminNav() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-56 border-r bg-card h-screen sticky top-0 shrink-0">
         <div className="px-4 py-4 border-b">
-          <WildhartMark className="h-9 w-auto" />
+          <WildhartMark className="h-14 w-auto" />
         </div>
         <nav className="flex-1 px-2 py-3 space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => (
@@ -56,7 +56,7 @@ export function AdminNav() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 pathname.startsWith(href)
-                  ? "bg-accent text-accent-foreground"
+                  ? " text-accent-foreground"
                   : "text-gray-500 hover:bg-black/10 hover:text-white"
               )}
             >

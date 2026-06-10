@@ -52,7 +52,7 @@ export default async function DashboardPage() {
           href="/admin/appointments/new"
           className="hidden md:inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-medium px-3 py-2 rounded-lg"
         >
-          + New
+          + New Appointment
         </Link>
       </div>
 

@@ -10,7 +10,7 @@ export function WildhartMark({ className }: { className?: string }) {
       <title id="wh-title">WildHeart Psychotherapy</title>
 
       <text
-        x="360"
+        x="340"
         y="120"
         textAnchor="middle"
         fontFamily='"Cormorant Garamond", "Iowan Old Style", "Baskerville", Georgia, serif'
@@ -23,8 +23,8 @@ export function WildhartMark({ className }: { className?: string }) {
       </text>
 
       <text
-        x="360"
-        y="190"
+        x="340"
+        y="200"
         textAnchor="middle"
         fontFamily='"Avenir Next", "Helvetica Neue", sans-serif'
         fontSize="50"
