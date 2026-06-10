@@ -53,6 +53,7 @@ interface CalEvent {
   price?: number;
   overrideId?: string;
   locationId?: string;
+  groupIds?: string[]; // all override IDs when multiple locations share a block
   date?: string;
   startTime?: string | null;
   endTime?: string | null;
@@ -70,7 +71,7 @@ interface PositionedEvent extends CalEvent {
 
 interface Selection { start: Date; end: Date }
 interface BlockEdit {
-  id: string; locationId: string; date: string; allDay: boolean;
+  id: string; groupIds: string[]; locationId: string; date: string; allDay: boolean;
   startTime: string; endTime: string; notes: string; repeatWeekly: boolean;
 }
 
