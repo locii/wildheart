@@ -1,47 +1,60 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
-import { Search, Upload, User, ChevronRight, X } from "lucide-react";
+import { Search, Upload, User, ChevronRight, X, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Client } from "@/lib/supabase/types";
 import type { ImportRow } from "@/lib/import";
 
+const PER_PAGE = 50;
+
 interface Props {
   initialClients: Client[];
+  initialTotal: number;
 }
 
-export function ClientsView({ initialClients }: Props) {
+export function ClientsView({ initialClients, initialTotal }: Props) {
   const [clients, setClients] = useState(initialClients);
+  const [total, setTotal] = useState(initialTotal);
+  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
-  const [searching, setSearching] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
-  async function search(q: string) {
-    setSearching(true);
-    const res = await fetch(`/api/clients?q=${encodeURIComponent(q)}`);
-    const { clients: data } = await res.json();
-    setClients(data ?? []);
-    setSearching(false);
+  async function load(q: string, p: number) {
+    setLoading(true);
+    const res = await fetch(`/api/clients?q=${encodeURIComponent(q)}&page=${p}`);
+    const data = await res.json();
+    setClients(data.clients ?? []);
+    setTotal(data.total ?? 0);
+    setPage(p);
+    setLoading(false);
   }
 
   function onQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value;
     setQuery(q);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => search(q), 300);
+    searchTimeout.current = setTimeout(() => load(q, 1), 300);
   }
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+  const from = (page - 1) * PER_PAGE + 1;
+  const to = Math.min(page * PER_PAGE, total);
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-semibold">Clients</h1>
-          <p className="text-sm text-gray-400">{clients.length} shown</p>
+          <p className="text-sm text-muted-foreground">
+            {total > 0 ? (query ? `${total} results` : `${from}–${to} of ${total}`) : "No clients"}
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
           <Upload className="h-3.5 w-3.5 mr-1" /> Import
@@ -59,8 +72,8 @@ export function ClientsView({ initialClients }: Props) {
         />
         {query && (
           <button
-            onClick={() => { setQuery(""); search(""); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            onClick={() => { setQuery(""); load("", 1); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -69,12 +82,12 @@ export function ClientsView({ initialClients }: Props) {
 
       {/* Client list */}
       {clients.length === 0 ? (
-        <div className="py-12 text-center text-gray-400">
+        <div className="py-12 text-center text-muted-foreground">
           <User className="h-8 w-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm">{query ? "No clients found" : "No clients yet"}</p>
         </div>
       ) : (
-        <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+        <div className={`bg-card border rounded-2xl divide-y overflow-hidden transition-opacity ${loading ? "opacity-50" : ""}`}>
           {clients.map((client) => (
             <Link
               key={client.id}
@@ -85,23 +98,47 @@ export function ClientsView({ initialClients }: Props) {
                 <p className="font-medium text-sm truncate">
                   {client.first_name} {client.last_name}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{client.email}</p>
+                <p className="text-xs text-muted-foreground truncate">{client.email}</p>
                 {client.last_appointment_at && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground/60">
                     Last seen {formatDistanceToNow(new Date(client.last_appointment_at), { addSuffix: true })}
                   </p>
                 )}
               </div>
-              <ChevronRight className="h-4 w-4 text-gray-300 shrink-0 ml-2" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0 ml-2" />
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <span className="text-xs text-muted-foreground">{from}–{to} of {total}</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => load(query, page - 1)}
+              disabled={page <= 1 || loading}
+              className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs text-muted-foreground px-1">{page} / {totalPages}</span>
+            <button
+              onClick={() => load(query, page + 1)}
+              disabled={page >= totalPages || loading}
+              className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
       <ImportDialog
         open={importOpen}
         onClose={() => setImportOpen(false)}
-        onImported={() => { setImportOpen(false); search(query); }}
+        onImported={() => { setImportOpen(false); load(query, 1); }}
       />
     </div>
   );

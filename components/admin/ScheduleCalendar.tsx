@@ -1,190 +1,304 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import type {
-  EventClickArg, EventDropArg, DateSelectArg, EventInput,
-  EventContentArg,
-} from "@fullcalendar/core";
-import { format, parseISO } from "date-fns";
-import { fromZonedTime } from "date-fns-tz";
-import { Search, X, MapPin, Trash2 } from "lucide-react";
+import {
+  format, addDays, addMonths, startOfWeek, endOfWeek,
+  startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
+  parseISO, isToday, startOfDay,
+} from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { ChevronLeft, ChevronRight, Search, X, MapPin, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { Location, AppointmentType, Client, AppointmentWithRelations, AvailabilityOverride } from "@/lib/supabase/types";
+import type {
+  Location, AppointmentType, Client,
+  AppointmentWithRelations, AvailabilityOverride,
+} from "@/lib/supabase/types";
 
-const TIMEZONE = "Australia/Melbourne";
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TZ = "Australia/Melbourne";
+const START_HOUR = 7;
+const END_HOUR = 21;
+const SLOT_MIN = 15;
+const SLOT_H = 20;           // px per 15-min slot
+const HOUR_H = SLOT_H * 4;  // 80px per hour
+const GRID_H = (END_HOUR - START_HOUR) * HOUR_H; // 1120px
+const TIME_W = 48;           // time gutter width px
+const MAX_SCROLL_H = 620;    // visible scroll height px
+const DRAG_THRESHOLD = 4;    // px before drag starts (distinguishes click from drag)
+
 const LOC_COLORS: Record<string, string> = {
   brunswick: "#3b82f6",
   lorne: "#7c3aed",
 };
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface CalEvent {
+  id: string;
+  title: string;
+  start: string; // UTC ISO
+  end: string;   // UTC ISO
+  color: string;
+  textColor?: string;
+  kind: "appointment" | "block";
+  locationSlug?: string;
+  typeName?: string;
+  paid?: boolean;
+  price?: number;
+  overrideId?: string;
+  locationId?: string;
+  date?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  notes?: string;
+  allDay?: boolean;
+  repeatWeekly?: boolean;
+}
+
+interface PositionedEvent extends CalEvent {
+  top: number;
+  height: number;
+  track: number;
+  numTracks: number;
+}
+
 interface Selection { start: Date; end: Date }
 interface BlockEdit {
-  id: string;
-  locationId: string;
-  date: string;
-  allDay: boolean;
-  startTime: string;
-  endTime: string;
-  notes: string;
-  repeatWeekly: boolean;
+  id: string; locationId: string; date: string; allDay: boolean;
+  startTime: string; endTime: string; notes: string; repeatWeekly: boolean;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function toMelb(utcIso: string): Date {
+  return toZonedTime(parseISO(utcIso), TZ);
+}
+
+function layoutEventsForDay(events: CalEvent[], day: Date): PositionedEvent[] {
+  const dayStart = startOfDay(day).getTime();
+  const dayEnd = dayStart + 86400000;
+
+  const visible = events.filter((ev) => {
+    const s = parseISO(ev.start).getTime();
+    const e = parseISO(ev.end).getTime();
+    return s < dayEnd && e > dayStart;
+  });
+
+  const sorted = [...visible].sort(
+    (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime(),
+  );
+
+  // Assign tracks greedily
+  const trackEnds: number[] = [];
+  const assigned: PositionedEvent[] = [];
+
+  for (const ev of sorted) {
+    const zs = toMelb(ev.start);
+    const ze = toMelb(ev.end);
+    const minsFromTop = zs.getHours() * 60 + zs.getMinutes() - START_HOUR * 60;
+    const top = (minsFromTop / SLOT_MIN) * SLOT_H;
+    const durationMins = (ze.getTime() - zs.getTime()) / 60000;
+    const height = Math.max(SLOT_H, (durationMins / SLOT_MIN) * SLOT_H);
+    const startMs = parseISO(ev.start).getTime();
+    const endMs = parseISO(ev.end).getTime();
+
+    let track = trackEnds.findIndex((end) => startMs >= end);
+    if (track === -1) { track = trackEnds.length; trackEnds.push(endMs); }
+    else trackEnds[track] = endMs;
+
+    assigned.push({ ...ev, top, height, track, numTracks: 0 });
+  }
+
+  // Compute numTracks per event (concurrent tracks at any moment during the event)
+  for (const ev of assigned) {
+    const s = parseISO(ev.start).getTime();
+    const e = parseISO(ev.end).getTime();
+    const concurrentTracks = new Set<number>();
+    for (const other of assigned) {
+      const os = parseISO(other.start).getTime();
+      const oe = parseISO(other.end).getTime();
+      if (os < e && oe > s) concurrentTracks.add(other.track);
+    }
+    ev.numTracks = concurrentTracks.size || 1;
+  }
+
+  return assigned;
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function ScheduleCalendar({
   locations,
   types,
+  actions,
 }: {
   locations: Location[];
   types: AppointmentType[];
+  actions?: React.ReactNode;
 }) {
   const router = useRouter();
-  const calRef = useRef<FullCalendar>(null);
+  const [view, setView] = useState<"month" | "week" | "day">("week");
+  const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [locationFilter, setLocationFilter] = useState<"all" | string>("all");
+  const [events, setEvents] = useState<CalEvent[]>([]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [editingBlock, setEditingBlock] = useState<BlockEdit | null>(null);
 
-  // Events fetcher — used as FullCalendar events function so refetchEvents() works
-  const fetchCalendarEvents = useCallback(async (
-    info: { startStr: string; endStr: string },
-    successCallback: (events: EventInput[]) => void,
-    failureCallback: (error: Error) => void,
-  ) => {
-    try {
-      const [apptRes, blockRes] = await Promise.all([
-        fetch(`/api/appointments?from=${encodeURIComponent(info.startStr)}&to=${encodeURIComponent(info.endStr)}`),
-        fetch(`/api/availability/overrides?locationId=all`),
-      ]);
-
-      const { appointments } = await apptRes.json() as { appointments: AppointmentWithRelations[] };
-      const { overrides } = await blockRes.json() as { overrides: AvailabilityOverride[] };
-
-      const apptEvents: EventInput[] = (appointments ?? [])
-        .filter((a) => locationFilter === "all" || a.location.slug === locationFilter)
-        .map((a) => ({
-          id: `appt-${a.id}`,
-          title: `${a.client.first_name} ${a.client.last_name}`,
-          start: a.start_at,
-          end: a.end_at,
-          color: LOC_COLORS[a.location.slug] ?? "#6b7280",
-          extendedProps: {
-            kind: "appointment",
-            locationSlug: a.location.slug,
-            typeName: a.type.name,
-            paid: a.paid,
-            price: a.type.price,
-          },
-        }));
-
-      const rangeStart = new Date(info.startStr);
-      const rangeEnd = new Date(info.endStr);
-
-      const blockEvents: EventInput[] = (overrides ?? [])
-        .filter((o) => {
-          const loc = locations.find((l) => l.id === o.location_id);
-          return locationFilter === "all" || loc?.slug === locationFilter;
-        })
-        .flatMap((o) => {
-          const loc = locations.find((l) => l.id === o.location_id);
-          const startTime = o.start_time ?? "00:00:00";
-          const endTime = o.end_time ?? "23:59:00";
-          const eventStart = fromZonedTime(new Date(`${o.date}T${startTime}`), TIMEZONE);
-          const eventEnd = fromZonedTime(new Date(`${o.date}T${endTime}`), TIMEZONE);
-          if (eventEnd < rangeStart || eventStart > rangeEnd) return [];
-          return [{
-            id: `block-${o.id}`,
-            title: o.notes ? `Blocked · ${o.notes}` : "Blocked",
-            start: eventStart.toISOString(),
-            end: eventEnd.toISOString(),
-            color: "#e5e7eb",
-            textColor: "#6b7280",
-            borderColor: "#d1d5db",
-            extendedProps: {
-              kind: "block",
-              overrideId: o.id,
-              locationId: o.location_id,
-              locationSlug: loc?.slug ?? "",
-              date: o.date,
-              startTime: o.start_time,
-              endTime: o.end_time,
-              notes: o.notes ?? "",
-              allDay: !o.start_time,
-              repeatWeekly: o.repeat_weekly,
-            },
-          }];
-        });
-
-      successCallback([...apptEvents, ...blockEvents]);
-    } catch (e) {
-      failureCallback(e as Error);
-    }
-  }, [locationFilter, locations]);
-
-  // Refetch when filter changes
-  useEffect(() => {
-    calRef.current?.getApi().refetchEvents();
-  }, [locationFilter]);
-
-  function refetch() {
-    calRef.current?.getApi().refetchEvents();
-  }
-
-  function handleEventClick(info: EventClickArg) {
-    const props = info.event.extendedProps;
-    if (props.kind === "appointment") {
-      router.push(`/admin/appointments/${info.event.id.replace("appt-", "")}`);
-    } else if (props.kind === "block") {
-      setEditingBlock({
-        id: props.overrideId as string,
-        locationId: props.locationId as string,
-        date: props.date as string,
-        allDay: props.allDay as boolean,
-        startTime: (props.startTime as string | null) ?? "09:00",
-        endTime: (props.endTime as string | null) ?? "17:00",
-        notes: props.notes as string,
-        repeatWeekly: props.repeatWeekly as boolean,
+  const days = useMemo(() => {
+    if (view === "day") return [anchorDate];
+    if (view === "month") {
+      return eachDayOfInterval({
+        start: startOfWeek(startOfMonth(anchorDate), { weekStartsOn: 1 }),
+        end: endOfWeek(endOfMonth(anchorDate), { weekStartsOn: 1 }),
       });
     }
+    const ws = startOfWeek(anchorDate, { weekStartsOn: 1 });
+    return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+  }, [view, anchorDate]);
+
+  const fetchEvents = useCallback(async () => {
+    const from = startOfDay(days[0]).toISOString();
+    const to = addDays(startOfDay(days[days.length - 1]), 1).toISOString();
+
+    const [apptRes, blockRes] = await Promise.all([
+      fetch(`/api/appointments?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+      fetch(`/api/availability/overrides?locationId=all`),
+    ]);
+
+    const { appointments } = await apptRes.json() as { appointments: AppointmentWithRelations[] };
+    const { overrides } = await blockRes.json() as { overrides: AvailabilityOverride[] };
+
+    const apptEvents: CalEvent[] = (appointments ?? [])
+      .filter((a) => locationFilter === "all" || a.location.slug === locationFilter)
+      .map((a) => ({
+        id: `appt-${a.id}`,
+        title: `${a.client.first_name} ${a.client.last_name}`,
+        start: a.start_at,
+        end: a.end_at,
+        color: LOC_COLORS[a.location.slug] ?? "#6b7280",
+        kind: "appointment" as const,
+        locationSlug: a.location.slug,
+        typeName: a.type.name,
+        paid: a.paid,
+        price: a.type.price,
+      }));
+
+    const rangeStart = new Date(from);
+    const rangeEnd = new Date(to);
+
+    const blockEvents: CalEvent[] = (overrides ?? [])
+      .filter((o) => {
+        const loc = locations.find((l) => l.id === o.location_id);
+        return locationFilter === "all" || loc?.slug === locationFilter;
+      })
+      .flatMap((o) => {
+        const loc = locations.find((l) => l.id === o.location_id);
+        const startTime = o.start_time ?? "00:00:00";
+        const endTime = o.end_time ?? "23:59:00";
+        const eventStart = fromZonedTime(new Date(`${o.date}T${startTime}`), TZ);
+        const eventEnd = fromZonedTime(new Date(`${o.date}T${endTime}`), TZ);
+        if (eventEnd < rangeStart || eventStart > rangeEnd) return [];
+        return [{
+          id: `block-${o.id}`,
+          title: o.notes ? `Blocked · ${o.notes}` : "Blocked",
+          start: eventStart.toISOString(),
+          end: eventEnd.toISOString(),
+          color: "oklch(0.28 0 0)",
+          textColor: "oklch(0.60 0 0)",
+          kind: "block" as const,
+          overrideId: o.id,
+          locationId: o.location_id,
+          locationSlug: loc?.slug ?? "",
+          date: o.date,
+          startTime: o.start_time,
+          endTime: o.end_time,
+          notes: o.notes ?? "",
+          allDay: !o.start_time,
+          repeatWeekly: o.repeat_weekly,
+        }];
+      });
+
+    setEvents([...apptEvents, ...blockEvents]);
+  }, [days, locationFilter, locations]);
+
+  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+  function nav(dir: -1 | 1) {
+    if (view === "month") setAnchorDate((d) => addMonths(d, dir));
+    else setAnchorDate((d) => addDays(d, dir * (view === "week" ? 7 : 1)));
   }
 
-  async function handleEventDrop(info: EventDropArg) {
-    const { kind, overrideId } = info.event.extendedProps;
-    if (kind === "appointment") {
-      const rawId = info.event.id.replace("appt-", "");
+  function handleMonthDayClick(day: Date) {
+    const dateStr = format(day, "yyyy-MM-dd");
+    setSelection({
+      start: fromZonedTime(new Date(`${dateStr}T09:00:00`), TZ),
+      end: fromZonedTime(new Date(`${dateStr}T10:00:00`), TZ),
+    });
+  }
+
+  async function handleEventDrop(ev: CalEvent, newStartUtc: Date, newEndUtc: Date) {
+    if (ev.kind === "appointment") {
+      const rawId = ev.id.replace("appt-", "");
       const res = await fetch(`/api/appointments/${rawId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ start_at: info.event.startStr, end_at: info.event.endStr }),
+        body: JSON.stringify({ start_at: newStartUtc.toISOString(), end_at: newEndUtc.toISOString() }),
       });
-      if (!res.ok) { info.revert(); alert("Could not reschedule — the slot may be taken."); }
-    } else if (kind === "block" && info.event.start) {
-      const newDate = format(info.event.start, "yyyy-MM-dd");
-      const newStart = format(info.event.start, "HH:mm:ss");
-      const newEnd = info.event.end ? format(info.event.end, "HH:mm:ss") : null;
-      const res = await fetch(`/api/availability/overrides/${overrideId}`, {
+      if (!res.ok) alert("Could not reschedule — the slot may be taken.");
+    } else {
+      const newStartMelb = toZonedTime(newStartUtc, TZ);
+      const newEndMelb = toZonedTime(newEndUtc, TZ);
+      await fetch(`/api/availability/overrides/${ev.overrideId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: newDate, start_time: newStart, end_time: newEnd }),
+        body: JSON.stringify({
+          date: format(newStartMelb, "yyyy-MM-dd"),
+          start_time: format(newStartMelb, "HH:mm:ss"),
+          end_time: format(newEndMelb, "HH:mm:ss"),
+        }),
       });
-      if (!res.ok) info.revert();
+    }
+    fetchEvents();
+  }
+
+  function handleEventClick(ev: CalEvent) {
+    if (ev.kind === "appointment") {
+      router.push(`/admin/appointments/${ev.id.replace("appt-", "")}`);
+    } else {
+      setEditingBlock({
+        id: ev.overrideId!,
+        locationId: ev.locationId!,
+        date: ev.date!,
+        allDay: ev.allDay ?? false,
+        startTime: (ev.startTime ?? "09:00").substring(0, 5),
+        endTime: (ev.endTime ?? "17:00").substring(0, 5),
+        notes: ev.notes ?? "",
+        repeatWeekly: ev.repeatWeekly ?? false,
+      });
     }
   }
 
-  function handleSelect(info: DateSelectArg) {
-    setSelection({ start: info.start, end: info.end });
-    calRef.current?.getApi().unselect();
+  function handleSelect(start: Date, end: Date) {
+    setSelection({ start, end });
   }
+
+  const title = view === "month"
+    ? format(anchorDate, "MMMM yyyy")
+    : view === "week"
+      ? `${format(days[0], "d MMM")} – ${format(days[6], "d MMM yyyy")}`
+      : format(anchorDate, "EEEE, d MMMM yyyy");
 
   return (
     <div className="space-y-3">
-      {/* Location filter */}
+      {/* Filter chips */}
       <div className="flex gap-1.5 overflow-x-auto pb-0.5">
         <FilterChip active={locationFilter === "all"} onClick={() => setLocationFilter("all")}>
           All locations
@@ -197,96 +311,502 @@ export function ScheduleCalendar({
         ))}
       </div>
 
-      {/* Calendar */}
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1">
+          <button onClick={() => nav(-1)} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setAnchorDate(new Date())}
+            className="px-2.5 py-1 text-xs rounded-lg bg-muted/50 hover:bg-muted font-medium transition-colors"
+          >
+            Today
+          </button>
+          <button onClick={() => nav(1)} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-medium ml-2 hidden sm:block">{title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
+            {(["month", "week", "day"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 text-xs rounded-md font-medium transition-colors capitalize ${view === v ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          {actions}
+        </div>
+      </div>
+
+      {/* Grid */}
       <div className="bg-card border rounded-xl overflow-hidden">
-        <FullCalendar
-          ref={calRef}
-          plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          timeZone={TIMEZONE}
-          headerToolbar={{ left: "prev,next today", center: "title", right: "timeGridWeek,timeGridDay" }}
-          height="auto"
-          slotMinTime="07:00:00"
-          slotMaxTime="21:00:00"
-          slotDuration="00:15:00"
-          snapDuration="00:15:00"
-          allDaySlot={false}
-          nowIndicator
-          editable
-          selectable
-          selectMirror
-          events={fetchCalendarEvents}
-          eventClick={handleEventClick}
-          eventDrop={handleEventDrop}
-          select={handleSelect}
-          eventContent={(info) => <EventContent info={info} />}
-          eventTimeFormat={{ hour: "numeric", minute: "2-digit", meridiem: "short" }}
-          buttonText={{ today: "Today", week: "Week", day: "Day" }}
-          dayHeaderFormat={{ weekday: "short", day: "numeric", month: "short" }}
-        />
+        {view === "month" ? (
+          <MonthGrid
+            days={days}
+            anchorDate={anchorDate}
+            events={events}
+            onEventClick={handleEventClick}
+            onDayClick={handleMonthDayClick}
+            onDayNumberClick={(day) => { setAnchorDate(day); setView("day"); }}
+          />
+        ) : (
+          <TimeGrid
+            days={days}
+            events={events}
+            onEventClick={handleEventClick}
+            onEventDrop={handleEventDrop}
+            onSelect={handleSelect}
+          />
+        )}
       </div>
 
       {/* Legend */}
       <div className="flex items-center gap-4 px-1">
         {locations.map((l) => (
-          <span key={l.slug} className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span key={l.slug} className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: LOC_COLORS[l.slug] }} />
             {l.name}
           </span>
         ))}
-        <span className="flex items-center gap-1.5 text-xs text-gray-500">
-          <span className="w-2.5 h-2.5 rounded-sm bg-border border border-gray-300" />
-          Blocked
-        </span>
       </div>
 
-      {/* Create dialog */}
       {selection && (
         <CreateDialog
           selection={selection}
           locations={locations}
           types={types}
           onClose={() => setSelection(null)}
-          onCreated={() => { setSelection(null); refetch(); }}
+          onCreated={() => { setSelection(null); fetchEvents(); }}
         />
       )}
 
-      {/* Edit block dialog */}
       {editingBlock && (
         <EditBlockDialog
           block={editingBlock}
           locations={locations}
           onClose={() => setEditingBlock(null)}
-          onSaved={() => { setEditingBlock(null); refetch(); }}
+          onSaved={() => { setEditingBlock(null); fetchEvents(); }}
         />
       )}
     </div>
   );
 }
 
-// ─── Custom event content ─────────────────────────────────────────────────────
+// ─── TimeGrid ─────────────────────────────────────────────────────────────────
 
-function EventContent({ info }: { info: EventContentArg }) {
-  const { kind, typeName, paid, price } = info.event.extendedProps;
-  if (kind === "block") {
-    return (
-      <div className="px-1.5 py-0.5 w-full truncate text-[11px] text-gray-500">
-        {info.event.title}
-      </div>
-    );
+const HOUR_LABELS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => {
+  const h = START_HOUR + i;
+  return h < 12 ? `${h}am` : h === 12 ? "12pm" : `${h - 12}pm`;
+});
+
+interface DragRef {
+  eventId: string;
+  origStart: string;
+  origEnd: string;
+  startY: number;
+  moved: boolean;
+}
+
+interface SelectRef {
+  colIndex: number;
+  startSlot: number;
+  endSlot: number;
+}
+
+function TimeGrid({
+  days,
+  events,
+  onEventClick,
+  onEventDrop,
+  onSelect,
+}: {
+  days: Date[];
+  events: CalEvent[];
+  onEventClick: (ev: CalEvent) => void;
+  onEventDrop: (ev: CalEvent, newStart: Date, newEnd: Date) => void;
+  onSelect: (start: Date, end: Date) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<DragRef | null>(null);
+  const selectRef = useRef<SelectRef | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; deltaSlots: number } | null>(null);
+  const [selecting, setSelecting] = useState<SelectRef | null>(null);
+  const [nowY, setNowY] = useState<number | null>(null);
+
+  // Now indicator
+  useEffect(() => {
+    function tick() {
+      const now = toZonedTime(new Date(), TZ);
+      const mins = now.getHours() * 60 + now.getMinutes() - START_HOUR * 60;
+      setNowY(mins >= 0 && mins <= (END_HOUR - START_HOUR) * 60 ? (mins / SLOT_MIN) * SLOT_H : null);
+    }
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Scroll to current time on mount
+  useEffect(() => {
+    if (!scrollRef.current || nowY === null) return;
+    scrollRef.current.scrollTop = Math.max(0, nowY - 120);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function getGridY(clientY: number): number {
+    if (!scrollRef.current) return 0;
+    return clientY - scrollRef.current.getBoundingClientRect().top + scrollRef.current.scrollTop;
   }
+
+  function getColIndex(clientX: number): number {
+    if (!scrollRef.current) return 0;
+    const rect = scrollRef.current.getBoundingClientRect();
+    const x = clientX - rect.left - TIME_W;
+    const colW = (rect.width - TIME_W) / days.length;
+    return Math.max(0, Math.min(days.length - 1, Math.floor(x / colW)));
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement;
+    const eventEl = target.closest<HTMLElement>("[data-eid]");
+
+    if (eventEl) {
+      const eid = eventEl.dataset.eid!;
+      dragRef.current = { eventId: eid, origStart: eventEl.dataset.start!, origEnd: eventEl.dataset.end!, startY: e.clientY, moved: false };
+      scrollRef.current?.setPointerCapture(e.pointerId);
+    } else {
+      e.preventDefault();
+      const y = getGridY(e.clientY);
+      const slot = Math.max(0, Math.floor(y / SLOT_H));
+      const colIndex = getColIndex(e.clientX);
+      selectRef.current = { colIndex, startSlot: slot, endSlot: slot + 1 };
+      setSelecting({ colIndex, startSlot: slot, endSlot: slot + 1 });
+      scrollRef.current?.setPointerCapture(e.pointerId);
+    }
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (dragRef.current) {
+      const deltaY = e.clientY - dragRef.current.startY;
+      if (!dragRef.current.moved && Math.abs(deltaY) < DRAG_THRESHOLD) return;
+      dragRef.current.moved = true;
+      const deltaSlots = Math.round(deltaY / SLOT_H);
+      if (deltaSlots !== (dragging?.deltaSlots ?? 0)) {
+        setDragging({ id: dragRef.current.eventId, deltaSlots });
+      }
+    } else if (selectRef.current) {
+      const y = getGridY(e.clientY);
+      const endSlot = Math.max(selectRef.current.startSlot + 1, Math.ceil(y / SLOT_H));
+      if (endSlot !== selectRef.current.endSlot) {
+        selectRef.current.endSlot = endSlot;
+        setSelecting({ ...selectRef.current });
+      }
+    }
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (dragRef.current) {
+      const { eventId, origStart, origEnd, moved } = dragRef.current;
+      const deltaSlots = dragging?.deltaSlots ?? 0;
+
+      if (moved && deltaSlots !== 0) {
+        const ev = events.find((ev) => ev.id === eventId);
+        if (ev) {
+          const deltaMs = deltaSlots * SLOT_MIN * 60000;
+          onEventDrop(
+            ev,
+            new Date(parseISO(origStart).getTime() + deltaMs),
+            new Date(parseISO(origEnd).getTime() + deltaMs),
+          );
+        }
+      } else if (!moved) {
+        const ev = events.find((ev) => ev.id === eventId);
+        if (ev) onEventClick(ev);
+      }
+
+      dragRef.current = null;
+      setDragging(null);
+    } else if (selectRef.current) {
+      const { colIndex, startSlot, endSlot } = selectRef.current;
+      if (endSlot > startSlot) {
+        const day = days[colIndex];
+        const startMins = START_HOUR * 60 + startSlot * SLOT_MIN;
+        const endMins = START_HOUR * 60 + endSlot * SLOT_MIN;
+        const dateStr = format(day, "yyyy-MM-dd");
+        const startLocal = fromZonedTime(
+          new Date(`${dateStr}T${pad(Math.floor(startMins / 60))}:${pad(startMins % 60)}:00`),
+          TZ,
+        );
+        const endLocal = fromZonedTime(
+          new Date(`${dateStr}T${pad(Math.floor(endMins / 60))}:${pad(endMins % 60)}:00`),
+          TZ,
+        );
+        onSelect(startLocal, endLocal);
+      }
+      selectRef.current = null;
+      setSelecting(null);
+    }
+  }
+
+  function handlePointerCancel() {
+    dragRef.current = null;
+    selectRef.current = null;
+    setDragging(null);
+    setSelecting(null);
+  }
+
   return (
-    <div className="px-1.5 py-0.5 w-full min-w-0">
-      <div className="text-[11px] font-semibold truncate text-white leading-tight">{info.event.title}</div>
-      {typeName && <div className="text-[10px] text-white/80 truncate">{typeName}</div>}
-      {(price as number) > 0 && (
-        <div className="text-[10px] text-white/70">{paid ? "✓ paid" : `$${price}`}</div>
-      )}
+    <div className="select-none">
+      {/* Day headers */}
+      <div className="flex border-b bg-card">
+        <div style={{ width: TIME_W, flexShrink: 0 }} />
+        {days.map((day) => (
+          <div
+            key={day.toISOString()}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium border-l ${isToday(day) ? "text-primary" : "text-muted-foreground"}`}
+          >
+            <span className="hidden sm:inline">{format(day, "EEE")}</span>
+            <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs tabular-nums ${isToday(day) ? "bg-primary text-primary-foreground font-semibold" : ""}`}>
+              {format(day, "d")}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Scrollable grid */}
+      <div
+        ref={scrollRef}
+        style={{ height: MAX_SCROLL_H, overflowY: "auto", touchAction: "pan-y" }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+      >
+        <div className="flex" style={{ height: GRID_H }}>
+
+          {/* Time gutter */}
+          <div style={{ width: TIME_W, flexShrink: 0 }}>
+            {HOUR_LABELS.map((label, i) => (
+              <div
+                key={label}
+                className="flex items-start justify-end pr-2 border-b border-border/20"
+                style={{ height: HOUR_H, paddingTop: 3 }}
+              >
+                <span className="text-[10px] text-muted-foreground/50 leading-none tabular-nums">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Day columns */}
+          {days.map((day, colIndex) => {
+            const positioned = layoutEventsForDay(events, day);
+            const selOver = selecting?.colIndex === colIndex ? selecting : null;
+
+            return (
+              <div
+                key={day.toISOString()}
+                className={`flex-1 border-l relative ${isToday(day) ? "bg-primary/[0.025]" : ""}`}
+                style={{ height: GRID_H }}
+              >
+                {/* Hour lines */}
+                {HOUR_LABELS.map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute left-0 right-0 border-b border-border/20"
+                    style={{ top: i * HOUR_H }}
+                  />
+                ))}
+                {/* Half-hour lines */}
+                {HOUR_LABELS.map((_, i) => (
+                  <div
+                    key={`h${i}`}
+                    className="absolute left-0 right-0 border-b border-border/10"
+                    style={{ top: i * HOUR_H + HOUR_H / 2 }}
+                  />
+                ))}
+
+                {/* Events */}
+                {positioned.map((ev) => {
+                  const isDragging = dragging?.id === ev.id;
+                  const top = ev.top + (isDragging ? (dragging?.deltaSlots ?? 0) * SLOT_H : 0);
+                  const pct = 96 / ev.numTracks;
+                  const leftPct = ev.track * pct + 1;
+
+                  return (
+                    <div
+                      key={ev.id}
+                      data-eid={ev.id}
+                      data-start={ev.start}
+                      data-end={ev.end}
+                      className={`absolute rounded-md overflow-hidden cursor-pointer transition-opacity ${isDragging ? "opacity-60 z-30 shadow-lg" : "z-10"}`}
+                      style={{
+                        top,
+                        height: ev.height,
+                        left: `${leftPct}%`,
+                        width: `${pct}%`,
+                        backgroundColor: ev.color,
+                        border: `1px solid ${ev.color}bb`,
+                      }}
+                    >
+                      {ev.kind === "block" ? (
+                        <div className="px-1.5 py-0.5 truncate text-[10px] leading-tight" style={{ color: ev.textColor ?? "#9ca3af" }}>
+                          {ev.title}
+                        </div>
+                      ) : (
+                        <div className="px-1.5 py-0.5">
+                          <div className={`font-semibold truncate text-white leading-tight ${ev.height <= SLOT_H * 2 ? "text-[9px]" : "text-[10px]"}`}>
+                            {ev.title}
+                          </div>
+                          {ev.height > SLOT_H * 2 && ev.typeName && (
+                            <div className="text-[9px] text-white/80 truncate">{ev.typeName}</div>
+                          )}
+                          {ev.height > SLOT_H * 3 && (ev.price ?? 0) > 0 && (
+                            <div className="text-[9px] text-white/70">{ev.paid ? "✓ paid" : `$${ev.price}`}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Selection overlay */}
+                {selOver && (
+                  <div
+                    className="absolute left-[2%] right-[2%] rounded pointer-events-none z-20 bg-primary/15 border border-primary/50"
+                    style={{
+                      top: selOver.startSlot * SLOT_H,
+                      height: (selOver.endSlot - selOver.startSlot) * SLOT_H,
+                    }}
+                  />
+                )}
+
+                {/* Now indicator */}
+                {isToday(day) && nowY !== null && (
+                  <div
+                    className="absolute left-0 right-0 z-20 pointer-events-none"
+                    style={{ top: nowY }}
+                  >
+                    <div className="absolute -left-1 w-2 h-2 rounded-full bg-primary -translate-y-1/2" />
+                    <div className="absolute left-1 right-0 h-px bg-primary" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Create dialog (book or block) ───────────────────────────────────────────
+// ─── MonthGrid ────────────────────────────────────────────────────────────────
+
+const MONTH_DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_CELL_MAX = 3;
+
+function MonthGrid({
+  days,
+  anchorDate,
+  events,
+  onEventClick,
+  onDayClick,
+  onDayNumberClick,
+}: {
+  days: Date[];
+  anchorDate: Date;
+  events: CalEvent[];
+  onEventClick: (ev: CalEvent) => void;
+  onDayClick: (day: Date) => void;
+  onDayNumberClick: (day: Date) => void;
+}) {
+  // Chunk days into weeks
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+
+  return (
+    <div>
+      {/* DOW headers */}
+      <div className="grid grid-cols-7 border-b">
+        {MONTH_DOW.map((d) => (
+          <div key={d} className="py-2 text-center text-[11px] font-medium text-muted-foreground border-r last:border-r-0">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Weeks */}
+      {weeks.map((week, wi) => (
+        <div key={wi} className="grid grid-cols-7">
+          {week.map((day) => {
+            const inMonth = isSameMonth(day, anchorDate);
+            const today = isToday(day);
+
+            // Events that touch this day
+            const dayStart = startOfDay(day).getTime();
+            const dayEnd = dayStart + 86400000;
+            const dayEvents = events
+              .filter((ev) => {
+                const s = parseISO(ev.start).getTime();
+                const e = parseISO(ev.end).getTime();
+                return s < dayEnd && e > dayStart;
+              })
+              .sort((a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime());
+
+            const visible = dayEvents.slice(0, MONTH_CELL_MAX);
+            const overflow = dayEvents.length - MONTH_CELL_MAX;
+
+            return (
+              <div
+                key={day.toISOString()}
+                className={`border-r border-b last:border-r-0 min-h-[88px] p-1 cursor-pointer group transition-colors hover:bg-muted/20 ${today ? "bg-primary/[0.04]" : ""} ${!inMonth ? "opacity-40" : ""}`}
+                onClick={() => onDayClick(day)}
+              >
+                {/* Day number */}
+                <div className="flex justify-end mb-1">
+                  <span
+                    className={`text-[11px] tabular-nums w-5 h-5 flex items-center justify-center rounded-full cursor-pointer transition-colors ${today ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-muted"}`}
+                    onClick={(e) => { e.stopPropagation(); onDayNumberClick(day); }}
+                  >
+                    {format(day, "d")}
+                  </span>
+                </div>
+
+                {/* Events */}
+                <div className="space-y-0.5">
+                  {visible.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] truncate leading-tight cursor-pointer hover:brightness-110 transition-all"
+                      style={{
+                        backgroundColor: `${ev.color}28`,
+                        color: ev.kind === "block" ? "var(--color-muted-foreground)" : ev.color,
+                      }}
+                      onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ev.color }} />
+                      <span className="truncate">{ev.title}</span>
+                    </div>
+                  ))}
+                  {overflow > 0 && (
+                    <div className="text-[10px] text-muted-foreground/70 px-1">+{overflow} more</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Create dialog ────────────────────────────────────────────────────────────
 
 function CreateDialog({
   selection, locations, types, onClose, onCreated,
@@ -304,7 +824,7 @@ function CreateDialog({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm mx-4">
         <DialogHeader>
-          <DialogTitle className="text-sm font-medium text-gray-500">{timeLabel}</DialogTitle>
+          <DialogTitle className="text-sm font-medium text-muted-foreground">{timeLabel}</DialogTitle>
         </DialogHeader>
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           <TabBtn active={tab === "book"} onClick={() => setTab("book")}>Book appointment</TabBtn>
@@ -368,70 +888,56 @@ function EditBlockDialog({
         <DialogHeader>
           <DialogTitle>Edit block</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-4">
-          {/* Location + date (read-only) */}
-          <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-sm space-y-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500">
+          <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-sm space-y-0.5">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
               {loc?.name ?? "Unknown location"} · {format(parseISO(block.date), "EEE d MMM yyyy")}
-              {repeatWeekly && <span className="text-[10px] bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 ml-auto">Weekly</span>}
+              {repeatWeekly && (
+                <span className="text-[10px] bg-blue-500/20 text-blue-400 rounded px-1.5 py-0.5 ml-auto">Weekly</span>
+              )}
             </div>
           </div>
 
-          {/* All day toggle */}
           <button onClick={() => setAllDay((v) => !v)} className="flex items-center gap-3 w-full">
-            <span className={`w-10 h-6 rounded-full flex items-center transition-colors shrink-0 ${allDay ? "bg-gray-900" : "bg-border"}`}>
+            <span className={`w-10 h-6 rounded-full flex items-center transition-colors shrink-0 ${allDay ? "bg-primary" : "bg-border"}`}>
               <span className={`w-4 h-4 bg-card rounded-full shadow mx-1 transition-transform ${allDay ? "translate-x-4" : ""}`} />
             </span>
             <span className="text-sm">All day</span>
           </button>
 
-          {/* Time range */}
           {!allDay && (
             <div className="flex items-center gap-2">
               <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
-                className="flex-1 text-sm border rounded-lg px-3 py-2" />
-              <span className="text-gray-400">–</span>
+                className="flex-1 text-sm bg-input border border-border rounded-lg px-3 py-2 text-foreground" />
+              <span className="text-muted-foreground">–</span>
               <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
-                className="flex-1 text-sm border rounded-lg px-3 py-2" />
+                className="flex-1 text-sm bg-input border border-border rounded-lg px-3 py-2 text-foreground" />
             </div>
           )}
 
-          {/* Notes */}
           <div className="space-y-1.5">
-            <Label>Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Conference, Annual leave…"
-              rows={2}
-            />
+            <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Conference, Annual leave…" rows={2} />
           </div>
 
-          {/* Repeat weekly */}
           <button onClick={() => setRepeatWeekly((v) => !v)} className="flex items-center gap-3 w-full">
-            <span className={`w-10 h-6 rounded-full flex items-center transition-colors shrink-0 ${repeatWeekly ? "bg-gray-900" : "bg-border"}`}>
+            <span className={`w-10 h-6 rounded-full flex items-center transition-colors shrink-0 ${repeatWeekly ? "bg-primary" : "bg-border"}`}>
               <span className={`w-4 h-4 bg-card rounded-full shadow mx-1 transition-transform ${repeatWeekly ? "translate-x-4" : ""}`} />
             </span>
             <div className="text-left">
               <div className="text-sm">Repeat weekly</div>
-              <div className="text-xs text-gray-400">Blocks every {format(parseISO(block.date), "EEEE")}</div>
+              <div className="text-xs text-muted-foreground">Blocks every {format(parseISO(block.date), "EEEE")}</div>
             </div>
           </button>
 
-          {/* Actions */}
           <div className="flex gap-2 pt-1">
             <Button onClick={save} disabled={saving} className="flex-1" size="sm">
               {saving ? "Saving…" : "Save"}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={deleteBlock}
-              disabled={deleting}
-              className="text-red-500 hover:text-red-700 hover:border-red-300"
-            >
+            <Button variant="outline" size="sm" onClick={deleteBlock} disabled={deleting}
+              className="text-red-500 hover:text-red-400 hover:border-red-500/50">
               <Trash2 className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
@@ -501,43 +1007,40 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
 
   return (
     <div className="space-y-3 pt-1">
-      {/* Location */}
       <div className="space-y-1.5">
         <Label className="text-xs">Location</Label>
         <div className="flex gap-1.5">
           {locations.map((l) => (
             <button key={l.slug} onClick={() => setLocationSlug(l.slug)}
-              className={`flex-1 py-2 text-xs rounded-lg border font-medium transition-colors ${locationSlug === l.slug ? "bg-primary text-primary-foreground border-primary" : "text-gray-500"}`}>
+              className={`flex-1 py-2 text-xs rounded-lg border font-medium transition-colors ${locationSlug === l.slug ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
               {l.name}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Type */}
       <div className="space-y-1.5">
         <Label className="text-xs">Service</Label>
         <div className="space-y-1">
           {types.map((t) => (
             <button key={t.id} onClick={() => setTypeId(t.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-colors ${typeId === t.id ? "bg-primary text-primary-foreground border-primary" : "text-gray-700 hover:border-gray-400"}`}>
+              className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-colors ${typeId === t.id ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:border-border"}`}>
               {t.name} · {t.duration_minutes} min
             </button>
           ))}
         </div>
       </div>
 
-      {/* Client */}
       <div className="space-y-1.5">
         <Label className="text-xs">Client</Label>
         {selectedClient ? (
           <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-xs">
             <span className="font-medium">{selectedClient.first_name} {selectedClient.last_name}</span>
-            <button onClick={() => setSelectedClient(null)}><X className="h-3.5 w-3.5 text-gray-400" /></button>
+            <button onClick={() => setSelectedClient(null)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
           </div>
         ) : isNew ? (
           <div className="space-y-2">
-            <button onClick={() => setIsNew(false)} className="flex items-center gap-1 text-xs text-gray-400">
+            <button onClick={() => setIsNew(false)} className="flex items-center gap-1 text-xs text-muted-foreground">
               <X className="h-3 w-3" /> Cancel
             </button>
             <div className="grid grid-cols-2 gap-2">
@@ -550,19 +1053,19 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
         ) : (
           <div className="space-y-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input placeholder="Search client…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8 h-8 text-xs" autoFocus />
             </div>
             {results.map((c) => (
               <button key={c.id} onClick={() => { setSelectedClient(c); setQ(""); setResults([]); }}
                 className="w-full text-left px-3 py-2 text-xs border rounded-lg hover:bg-muted/50">
                 <span className="font-medium">{c.first_name} {c.last_name}</span>
-                <span className="text-gray-400 ml-2">{c.email}</span>
+                <span className="text-muted-foreground ml-2">{c.email}</span>
               </button>
             ))}
             {q.trim() && results.length === 0 && (
               <button onClick={() => setIsNew(true)}
-                className="w-full text-xs text-blue-600 border border-dashed rounded-lg py-2 hover:border-blue-400">
+                className="w-full text-xs text-primary border border-dashed rounded-lg py-2 hover:border-primary/70">
                 + Create new client
               </button>
             )}
@@ -622,26 +1125,22 @@ function BlockTab({ selection, locations, onCreated, onClose }: {
         <div className="flex gap-1.5">
           {locations.map((l) => (
             <button key={l.id} onClick={() => setLocationId(l.id)}
-              className={`flex-1 py-2.5 text-xs rounded-lg border font-medium transition-colors flex items-center justify-center gap-1.5 ${locationId === l.id ? "bg-primary text-primary-foreground border-primary" : "text-gray-500"}`}>
+              className={`flex-1 py-2.5 text-xs rounded-lg border font-medium transition-colors flex items-center justify-center gap-1.5 ${locationId === l.id ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
               <MapPin className="h-3 w-3" />{l.name}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-xs text-gray-500 space-y-0.5">
+      <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-xs text-muted-foreground space-y-0.5">
         <div>{format(selection.start, "EEE d MMM yyyy")}</div>
         <div>{isAllDay ? "All day" : `${format(selection.start, "h:mm a")} – ${format(selection.end, "h:mm a")}`}</div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
-        <Textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="e.g. Conference, Annual leave…"
-          rows={2}
-        />
+        <Label className="text-xs">Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. Conference, Annual leave…" rows={2} />
       </div>
 
       <div className="flex gap-2">
@@ -658,8 +1157,10 @@ function BlockTab({ selection, locations, onCreated, onClose }: {
 
 function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick}
-      className={`shrink-0 flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground border-border hover:border-muted-foreground"}`}
+    >
       {children}
     </button>
   );
@@ -669,8 +1170,10 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick}
-      className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${active ? "bg-muted/50 shadow-sm" : "text-gray-500"}`}>
+    <button
+      onClick={onClick}
+      className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${active ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+    >
       {children}
     </button>
   );
