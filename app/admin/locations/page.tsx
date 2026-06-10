@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export default function LocationsPage() {
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto">
+    <div className="px-4 py-6 max-w-2xl mx-auto">
       <div className="mb-5">
         <h1 className="text-xl font-semibold">Locations</h1>
         <p className="text-sm text-muted-foreground mt-0.5">

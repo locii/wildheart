@@ -41,11 +41,13 @@ export async function GET(req: NextRequest) {
     typeIdFilter = (matchedTypes ?? []).map((t: { id: string }) => t.id);
   }
 
+  const ascending = searchParams.get("order") !== "desc";
+
   let query = supabase
     .from("appointments")
     .select(`*, client:clients(*), location:locations(*), type:appointment_types(*)`, paginate ? { count: "exact" } : undefined)
     .is("cancelled_at", null)
-    .order("start_at", { ascending: false });
+    .order("start_at", { ascending });
 
   if (locationId) query = query.eq("location_id", locationId);
   if (from) query = query.gte("start_at", from);

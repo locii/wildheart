@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import {
   addWeeks, addMonths, addYears,
@@ -287,11 +287,50 @@ export function ReportsView() {
             </div>
           )}
 
-          {/* Breakdowns */}
+          {/* New vs returning */}
+          {data.newVsReturning.length > 0 && (
+            <div className="bg-card border rounded-2xl p-4 mb-6">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">New vs returning clients</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={data.newVsReturning} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(v: any, name: any) => [v, name === "newClients" ? "New" : "Returning"]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, background: "var(--color-card)", border: "1px solid var(--color-border)", color: "var(--color-foreground)" }}
+                    cursor={{ fill: "transparent" }}
+                  />
+                  <Legend formatter={(v) => v === "newClients" ? "New" : "Returning"} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="returning" stackId="a" fill="var(--color-chart-3)" radius={[0, 0, 0, 0]} isAnimationActive animationDuration={600} />
+                  <Bar dataKey="newClients" stackId="a" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} isAnimationActive animationDuration={600} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Breakdowns + top clients */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <BreakdownCard title="By type" rows={data.byType} />
             <BreakdownCard title="By location" rows={data.byLocation} />
           </div>
+
+          {data.topClients.length > 0 && (
+            <div className="bg-card border rounded-2xl p-4 mb-6">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Top clients</p>
+              <div className="space-y-2">
+                {data.topClients.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm">
+                    <span className="text-muted-foreground text-xs w-5 shrink-0 text-right">{i + 1}</span>
+                    <span className="flex-1 truncate font-medium">{c.name}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">{c.sessions} session{c.sessions !== 1 ? "s" : ""}</span>
+                    <span className="font-medium text-xs w-16 text-right shrink-0">${c.revenue.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Appointments list */}
           {from && to && (
@@ -336,7 +375,7 @@ function AppointmentsList({
     let cancelled = false;
     setLoading(true);
     const params = new URLSearchParams({
-      from, to, limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE),
+      from, to, limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE), order: "desc",
     });
     if (debouncedQ) params.set("q", debouncedQ);
     if (activeTypes.size > 0) params.set("typeNames", [...activeTypes].join(","));

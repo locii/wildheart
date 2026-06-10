@@ -12,6 +12,29 @@ import type { Location, AppointmentWithRelations } from "@/lib/supabase/types";
 type DateFilter = "upcoming" | "today" | "week" | "month" | "all";
 type LocationFilter = "all" | string;
 
+const TZ = "Australia/Melbourne";
+
+function groupByDay(appointments: AppointmentWithRelations[]) {
+  const groups = new Map<string, AppointmentWithRelations[]>();
+  for (const a of appointments) {
+    const local = toZonedTime(new Date(a.start_at), TZ);
+    const key = format(local, "yyyy-MM-dd");
+    const g = groups.get(key) ?? [];
+    g.push(a);
+    groups.set(key, g);
+  }
+  const today = format(toZonedTime(new Date(), TZ), "yyyy-MM-dd");
+  const tomorrow = format(toZonedTime(new Date(Date.now() + 86400000), TZ), "yyyy-MM-dd");
+  return Array.from(groups.entries()).map(([key, appts]) => {
+    const d = toZonedTime(new Date(`${key}T12:00:00`), TZ);
+    let dayLabel: string;
+    if (key === today) dayLabel = "Today";
+    else if (key === tomorrow) dayLabel = "Tomorrow";
+    else dayLabel = format(d, "EEEE, d MMMM yyyy");
+    return { dayLabel, appointments: appts };
+  });
+}
+
 const DATE_OPTIONS: { value: DateFilter; label: string }[] = [
   { value: "upcoming", label: "Upcoming" },
   { value: "today", label: "Today" },
@@ -158,9 +181,18 @@ export function AppointmentsList({ locations }: { locations: Location[] }) {
       ) : filtered.length === 0 ? (
         <div className="py-10 text-center text-sm text-gray-400">No appointments found</div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((a) => (
-            <AppointmentCard key={a.id} appointment={a} />
+        <div className="space-y-6">
+          {groupByDay(filtered).map(({ dayLabel, appointments: group }) => (
+            <div key={dayLabel}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
+                {dayLabel}
+              </p>
+              <div className="space-y-2">
+                {group.map((a) => (
+                  <AppointmentCard key={a.id} appointment={a} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -209,11 +241,8 @@ function AppointmentCard({ appointment: a }: { appointment: AppointmentWithRelat
           </div>
           <div className="text-xs text-gray-500 mt-0.5">{a.type.name}</div>
         </div>
-        <div className="text-right shrink-0 space-y-1">
+        <div className="text-right shrink-0">
           <div className="text-xs font-medium text-gray-300 tabular-nums">
-            {format(start, "EEE d MMM")}
-          </div>
-          <div className="text-xs text-gray-400 tabular-nums">
             {format(start, "h:mm a")}
           </div>
         </div>

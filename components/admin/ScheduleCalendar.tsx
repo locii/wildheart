@@ -156,8 +156,16 @@ export function ScheduleCalendar({
     if (d) { try { return parse(d, "yyyy-MM-dd", new Date()); } catch {} }
     return new Date();
   });
+  const [liveLocations, setLiveLocations] = useState<Location[]>(locations);
   const [locationFilter, setLocationFilter] = useState<"all" | string>("all");
   const [events, setEvents] = useState<CalEvent[]>([]);
+
+  // Re-fetch locations so colour edits are reflected without a full page reload
+  useEffect(() => {
+    fetch("/api/locations")
+      .then(r => r.json())
+      .then(({ locations: fresh }) => { if (fresh) setLiveLocations(fresh); });
+  }, []);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [editingBlock, setEditingBlock] = useState<BlockEdit | null>(null);
   const [flyoutApptId, setFlyoutApptId] = useState<string | null>(null);
@@ -204,7 +212,7 @@ export function ScheduleCalendar({
         title: `${a.client.first_name} ${a.client.last_name}`,
         start: a.start_at,
         end: a.end_at,
-        color: locColor(locations, a.location.slug),
+        color: locColor(liveLocations, a.location.slug),
         kind: "appointment" as const,
         locationSlug: a.location.slug,
         typeName: a.type.name,
@@ -281,7 +289,7 @@ export function ScheduleCalendar({
     }
 
     setEvents([...apptEvents, ...blockEvents]);
-  }, [days, locationFilter, locations]);
+  }, [days, locationFilter, liveLocations]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
@@ -376,9 +384,9 @@ export function ScheduleCalendar({
         <FilterChip active={locationFilter === "all"} onClick={() => setLocationFilter("all")}>
           All locations
         </FilterChip>
-        {locations.map((l) => (
+        {liveLocations.map((l) => (
           <FilterChip key={l.slug} active={locationFilter === l.slug} onClick={() => setLocationFilter(l.slug)}>
-            <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: locColor(locations, l.slug) }} />
+            <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: locColor(liveLocations, l.slug) }} />
             {l.name}
           </FilterChip>
         ))}
@@ -492,9 +500,9 @@ export function ScheduleCalendar({
 
       {/* Legend */}
       <div className="flex items-center gap-4 px-1">
-        {locations.map((l) => (
+        {liveLocations.map((l) => (
           <span key={l.slug} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: locColor(locations, l.slug) }} />
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: locColor(liveLocations, l.slug) }} />
             {l.name}
           </span>
         ))}
@@ -503,7 +511,7 @@ export function ScheduleCalendar({
       {selection && (
         <CreateDialog
           selection={selection}
-          locations={locations}
+          locations={liveLocations}
           types={types}
           onClose={() => setSelection(null)}
           onCreated={() => { setSelection(null); fetchEvents(); }}
@@ -513,7 +521,7 @@ export function ScheduleCalendar({
       {editingBlock && (
         <EditBlockDialog
           block={editingBlock}
-          locations={locations}
+          locations={liveLocations}
           onClose={() => setEditingBlock(null)}
           onSaved={() => { setEditingBlock(null); fetchEvents(); }}
         />

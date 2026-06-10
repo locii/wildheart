@@ -1,22 +1,23 @@
 import type { Location } from "@/lib/supabase/types";
 
+// oklch palette — warm-compatible, spread across hues, readable on dark bg
 export const LOCATION_PALETTE = [
-  "#3b82f6", // blue
-  "#7c3aed", // violet
-  "#10b981", // emerald
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#84cc16", // lime
+  "oklch(0.68 0.16 145)", // sage green
+  "oklch(0.65 0.17 22)",  // warm coral
+  "oklch(0.65 0.13 235)", // steel blue
+  "oklch(0.65 0.15 55)",  // amber-gold
+  "oklch(0.62 0.13 290)", // warm mauve
+  "oklch(0.65 0.12 185)", // teal
+  "oklch(0.65 0.15 340)", // dusty rose
+  "oklch(0.68 0.13 100)", // warm olive
 ];
 
 // Color swatches the user can pick from in the UI
 export const COLOR_SWATCHES = [
-  "#3b82f6", "#6366f1", "#7c3aed", "#a855f7",
-  "#ec4899", "#ef4444", "#f97316", "#f59e0b",
-  "#84cc16", "#10b981", "#06b6d4", "#0ea5e9",
-  "#64748b", "#78716c",
+  "oklch(0.65 0.17 22)",  "oklch(0.65 0.16 40)",  "oklch(0.68 0.15 65)",  "oklch(0.72 0.14 78)",
+  "oklch(0.68 0.13 100)", "oklch(0.68 0.14 145)", "oklch(0.65 0.12 185)", "oklch(0.65 0.13 220)",
+  "oklch(0.65 0.13 255)", "oklch(0.62 0.13 290)", "oklch(0.62 0.14 320)", "oklch(0.65 0.15 345)",
+  "oklch(0.62 0.06 50)",  "oklch(0.55 0.05 180)",
 ];
 
 export function locationColor(locations: Location[], slug: string): string {
