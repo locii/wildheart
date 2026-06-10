@@ -3,16 +3,21 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { parseSquarespaceAppointmentCSV } from "@/lib/import-appointments";
 import type { Location, AppointmentType, Client } from "@/lib/supabase/types";
 
+type Mappings = {
+  types: Record<string, string | null>;      // csvName → typeId | null (skip)
+  locations: Record<string, string | null>;  // csvSlug → locationId | null (skip)
+};
+
 export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
-  const body = await req.json() as { csv: string; confirm?: boolean };
+  const body = await req.json() as { csv: string; confirm?: boolean; mappings?: Mappings };
+  const mappings: Mappings = body.mappings ?? { types: {}, locations: {} };
 
   const { rows, errors: parseErrors } = parseSquarespaceAppointmentCSV(body.csv);
   if (rows.length === 0) {
     return NextResponse.json({ parseErrors, rows: [], toImport: 0, skipped: 0 });
   }
 
-  // Load locations and types for lookup
   const [{ data: locData }, { data: typeData }] = await Promise.all([
     supabase.from("locations").select("*"),
     supabase.from("appointment_types").select("*"),
@@ -20,16 +25,29 @@ export async function POST(req: NextRequest) {
   const locations = (locData ?? []) as Location[];
   const types     = (typeData ?? []) as AppointmentType[];
 
-  // Check which squarespace IDs already exist (via notes field hack — or check start_at + email)
   const preview = await Promise.all(rows.map(async (row) => {
-    const location = locations.find((l) => l.slug === row.locationSlug);
-    const type     = types.find((t) => t.name.toLowerCase() === row.typeName.toLowerCase());
+    // Resolve location: direct match → mapping → unknown
+    let location = locations.find((l) => l.slug === row.locationSlug);
+    if (!location) {
+      const mapped = mappings.locations[row.locationSlug];
+      if (mapped) location = locations.find((l) => l.id === mapped);
+    }
+    const locationSkipped = !location && mappings.locations[row.locationSlug] === null;
+
+    // Resolve type: case-insensitive match → mapping → unknown
+    let type = types.find((t) => t.name.toLowerCase() === row.typeName.toLowerCase());
+    if (!type) {
+      const mapped = mappings.types[row.typeName];
+      if (mapped) type = types.find((t) => t.id === mapped);
+    }
+    const typeSkipped = !type && mappings.types[row.typeName] === null;
 
     const issues: string[] = [];
-    if (!location) issues.push(`Unknown location "${row.locationSlug}"`);
-    if (!type)     issues.push(`Unknown type "${row.typeName}"`);
+    if (!location && !locationSkipped) issues.push(`Unknown location "${row.locationSlug}"`);
+    if (!type && !typeSkipped)         issues.push(`Unknown type "${row.typeName}"`);
 
-    // Check if appointment already exists (same start_at)
+    const intentionallySkipped = locationSkipped || typeSkipped;
+
     const { data: existing } = await supabase
       .from("appointments")
       .select("id")
@@ -41,14 +59,23 @@ export async function POST(req: NextRequest) {
       locationId: location?.id,
       typeId: type?.id,
       alreadyExists: !!existing,
+      intentionallySkipped,
       issues,
       canImport: !!location && !!type && !existing,
     };
   }));
 
-  const toImport = preview.filter((p) => p.canImport);
-  const skipped  = preview.filter((p) => p.alreadyExists);
-  const invalid  = preview.filter((p) => p.issues.length > 0 && !p.alreadyExists);
+  const toImport  = preview.filter((p) => p.canImport);
+  const skipped   = preview.filter((p) => p.alreadyExists || p.intentionallySkipped);
+  const invalid   = preview.filter((p) => p.issues.length > 0 && !p.alreadyExists && !p.intentionallySkipped);
+
+  // Collect unique unknowns to show in mapping UI
+  const unknownTypes = [...new Set(
+    preview.filter((p) => p.issues.some((i) => i.startsWith("Unknown type"))).map((p) => p.row.typeName),
+  )];
+  const unknownLocations = [...new Set(
+    preview.filter((p) => p.issues.some((i) => i.startsWith("Unknown location"))).map((p) => p.row.locationSlug),
+  )];
 
   if (!body.confirm) {
     return NextResponse.json({
@@ -57,6 +84,8 @@ export async function POST(req: NextRequest) {
       skipped: skipped.length,
       invalid: invalid.map((p) => ({ email: p.row.email, issues: p.issues })),
       parseErrors,
+      unknownTypes,
+      unknownLocations,
     });
   }
 
@@ -65,7 +94,6 @@ export async function POST(req: NextRequest) {
   const importErrors: string[] = [...parseErrors];
 
   for (const { row, locationId, typeId } of toImport) {
-    // Find or create client
     let client: Client | null = null;
     const { data: existingClient } = await supabase
       .from("clients")
@@ -115,7 +143,6 @@ export async function POST(req: NextRequest) {
       importErrors.push(`Failed to import ${row.email} at ${row.startAt}: ${apptErr.message}`);
     } else {
       imported++;
-      // Update client's last_appointment_at if this is more recent
       if (!row.cancelledAt) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase.from("clients") as any)
@@ -126,9 +153,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    imported,
-    skipped: skipped.length,
-    errors: importErrors,
-  });
+  return NextResponse.json({ imported, skipped: skipped.length, errors: importErrors });
 }

@@ -2,32 +2,69 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
+import { Upload, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import type { AppointmentRow } from "@/lib/import-appointments";
+import type { Location, AppointmentType } from "@/lib/supabase/types";
+
+type Mappings = {
+  types: Record<string, string | null>;
+  locations: Record<string, string | null>;
+};
 
 interface PreviewData {
   toImport: AppointmentRow[];
   skipped: number;
   invalid: { email: string; issues: string[] }[];
   parseErrors: string[];
+  unknownTypes: string[];
+  unknownLocations: string[];
 }
 
-export function AppointmentImportButton() {
+type Step = "upload" | "mapping" | "preview" | "done";
+
+export function AppointmentImportButton({
+  locations = [],
+  types = [],
+}: {
+  locations?: Location[];
+  types?: AppointmentType[];
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<Step>("upload");
   const [csv, setCsv] = useState("");
   const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [mappings, setMappings] = useState<Mappings>({ types: {}, locations: {} });
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
     setCsv(""); setPreview(null); setResult(null); setError(null);
+    setMappings({ types: {}, locations: {} });
+    setStep("upload");
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function fetchPreview(csvText: string, m: Mappings) {
+    setLoading(true);
+    setError(null);
+    const res = await fetch("/api/appointments/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csv: csvText, mappings: m }),
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (!res.ok || !data.toImport) {
+      setError(data.parseErrors?.join(", ") ?? data.error ?? "Failed to parse CSV");
+      return null;
+    }
+    return data as PreviewData;
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -35,20 +72,27 @@ export function AppointmentImportButton() {
     if (!file) return;
     const text = await file.text();
     setCsv(text);
-    setLoading(true);
-    setError(null);
-    const res = await fetch("/api/appointments/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv: text }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!data.toImport) {
-      setError(data.parseErrors?.join(", ") ?? "Failed to parse CSV");
+    const data = await fetchPreview(text, { types: {}, locations: {} });
+    if (!data) return;
+    setPreview(data);
+    if (data.unknownTypes.length > 0 || data.unknownLocations.length > 0) {
+      // Pre-fill mappings with null (skip) as default
+      const tm: Record<string, string | null> = {};
+      const lm: Record<string, string | null> = {};
+      data.unknownTypes.forEach((t) => { tm[t] = null; });
+      data.unknownLocations.forEach((l) => { lm[l] = null; });
+      setMappings({ types: tm, locations: lm });
+      setStep("mapping");
     } else {
-      setPreview(data);
+      setStep("preview");
     }
+  }
+
+  async function applyMappings() {
+    const data = await fetchPreview(csv, mappings);
+    if (!data) return;
+    setPreview(data);
+    setStep("preview");
   }
 
   async function confirm() {
@@ -56,39 +100,135 @@ export function AppointmentImportButton() {
     const res = await fetch("/api/appointments/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv, confirm: true }),
+      body: JSON.stringify({ csv, confirm: true, mappings }),
     });
     const data = await res.json();
     setLoading(false);
     setResult({ imported: data.imported, skipped: data.skipped });
     router.refresh();
+    setStep("done");
   }
+
+  const allMapped = preview
+    ? preview.unknownTypes.every((t) => mappings.types[t] !== undefined)
+      && preview.unknownLocations.every((l) => mappings.locations[l] !== undefined)
+    : false;
 
   return (
     <>
-      <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Upload className="h-3.5 w-3.5 mr-1" /> Import
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); } setOpen(o); }}>
-        <DialogContent className="max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Import Squarespace appointments</DialogTitle>
           </DialogHeader>
 
-          {result ? (
-            <div className="py-6 text-center space-y-2">
-              <p className="text-3xl font-bold">{result.imported}</p>
+          {step === "upload" && (
+            <div className="space-y-4 py-2">
               <p className="text-sm text-muted-foreground">
-                appointments imported · {result.skipped} already existed
+                Export your schedule from Squarespace (Scheduling → Appointments → Export) and upload the CSV here.
               </p>
-              <Button className="mt-4" onClick={() => { reset(); setOpen(false); }}>Done</Button>
+              {error && <p className="text-sm text-red-400">{error}</p>}
+              <label className="flex flex-col items-center gap-3 border-2 border-dashed border-border rounded-xl p-8 cursor-pointer hover:border-primary/50 transition-colors">
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {loading ? "Reading…" : "Click to select schedule CSV"}
+                </span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={onFile}
+                  disabled={loading}
+                />
+              </label>
             </div>
-          ) : preview ? (
+          )}
+
+          {step === "mapping" && preview && (
+            <div className="space-y-5">
+              <p className="text-sm text-muted-foreground">
+                Some values in the CSV don&apos;t match your system. Map them to existing ones or skip those rows.
+              </p>
+
+              {preview.unknownTypes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service types</p>
+                  {preview.unknownTypes.map((name) => (
+                    <div key={name} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground truncate" title={name}>
+                          &ldquo;{name}&rdquo;
+                        </p>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                      <select
+                        className="flex-1 text-xs bg-input border border-border rounded-lg px-2 py-1.5 text-foreground"
+                        value={mappings.types[name] ?? ""}
+                        onChange={(e) => setMappings((m) => ({
+                          ...m,
+                          types: { ...m.types, [name]: e.target.value || null },
+                        }))}
+                      >
+                        <option value="">Skip these rows</option>
+                        {types.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {preview.unknownLocations.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Locations</p>
+                  {preview.unknownLocations.map((slug) => (
+                    <div key={slug} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground truncate" title={slug}>
+                          &ldquo;{slug || "(empty)"}&rdquo;
+                        </p>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                      <select
+                        className="flex-1 text-xs bg-input border border-border rounded-lg px-2 py-1.5 text-foreground"
+                        value={mappings.locations[slug] ?? ""}
+                        onChange={(e) => setMappings((m) => ({
+                          ...m,
+                          locations: { ...m.locations, [slug]: e.target.value || null },
+                        }))}
+                      >
+                        <option value="">Skip these rows</option>
+                        {locations.map((l) => (
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {error && <p className="text-sm text-red-400">{error}</p>}
+
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={reset}>Back</Button>
+                <Button size="sm" className="flex-1" onClick={applyMappings} disabled={loading || !allMapped}>
+                  {loading ? "Checking…" : "Continue"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === "preview" && preview && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 <strong className="text-foreground">{preview.toImport.length}</strong> appointments will be imported ·{" "}
-                <strong className="text-foreground">{preview.skipped}</strong> already exist and will be skipped.
+                <strong className="text-foreground">{preview.skipped}</strong> already exist or skipped.
               </p>
 
               {preview.invalid.length > 0 && (
@@ -122,8 +262,11 @@ export function AppointmentImportButton() {
               )}
 
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={reset}>Back</Button>
+                <Button variant="outline" size="sm" onClick={() => setStep(preview.unknownTypes.length || preview.unknownLocations.length ? "mapping" : "upload")}>
+                  Back
+                </Button>
                 <Button
+                  size="sm"
                   className="flex-1"
                   onClick={confirm}
                   disabled={loading || preview.toImport.length === 0}
@@ -132,27 +275,15 @@ export function AppointmentImportButton() {
                 </Button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4 py-2">
+          )}
+
+          {step === "done" && result && (
+            <div className="py-6 text-center space-y-2">
+              <p className="text-3xl font-bold">{result.imported}</p>
               <p className="text-sm text-muted-foreground">
-                Export your schedule from Squarespace (Scheduling → Appointments → Export) and upload the CSV here.
-                Clients will be created automatically if they don&apos;t exist.
+                appointments imported · {result.skipped} already existed or skipped
               </p>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <label className="flex flex-col items-center gap-3 border-2 border-dashed border-border rounded-xl p-8 cursor-pointer hover:border-primary/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  {loading ? "Reading…" : "Click to select schedule CSV"}
-                </span>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="hidden"
-                  onChange={onFile}
-                  disabled={loading}
-                />
-              </label>
+              <Button className="mt-4" onClick={() => { reset(); setOpen(false); }}>Done</Button>
             </div>
           )}
         </DialogContent>
