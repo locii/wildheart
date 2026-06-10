@@ -5,12 +5,17 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  Palette
-  Charcoal Blue  #264653  → background / sidebar family
-  Verdigris      #2a9d8f  → primary / ring / chart-1
-  Jasmine        #e9c46a  → chart-2 / warm accent text
-  Sandy Brown    #f4a261  → chart-3
-  Burnt Peach    #e76f51  → chart-4 / destructive
+  Palette — Fire & Ember
+  Ink Black     #03071e  → background / void
+  Night Bordeaux #370617  → sidebar / deepest surfaces
+  Black Cherry  #6a040f  → accent / active states
+  Oxblood       #9d0208  → chart-5
+  Brick Ember   #d00000  → destructive / chart-1
+  Red Ochre     #dc2f02  → chart-2
+  Autumn Leaf   #e85d04  → chart-3
+  Dark Orange   #f48c06  → chart-4
+  Orange        #faa307  → ring / focus
+  Amber Flame   #ffba08  → primary CTA
 */
 
 @theme inline {
@@ -25,75 +30,75 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* ── Backgrounds (dark charcoal blue family) ─────────────────── */
-  --color-background:           oklch(0.17 0.025 215);
-  --color-foreground:           oklch(0.96 0.005 215);
-  --color-card:                 oklch(0.23 0.028 215);
-  --color-card-foreground:      oklch(0.96 0.005 215);
-  --color-popover:              oklch(0.23 0.028 215);
-  --color-popover-foreground:   oklch(0.96 0.005 215);
+  /* ── Backgrounds (Ink Black family) ──────────────────────────── */
+  --color-background:           oklch(0.07 0.025 265);
+  --color-foreground:           oklch(0.96 0.01  60);
+  --color-card:                 oklch(0.11 0.025 265);
+  --color-card-foreground:      oklch(0.96 0.01  60);
+  --color-popover:              oklch(0.11 0.025 265);
+  --color-popover-foreground:   oklch(0.96 0.01  60);
 
-  /* ── Primary — Verdigris #2a9d8f ─────────────────────────────── */
-  --color-primary:              oklch(0.62 0.085 185);
-  --color-primary-foreground:   oklch(0.98 0 0);
+  /* ── Primary — Amber Flame #ffba08 ───────────────────────────── */
+  --color-primary:              oklch(0.85 0.15  78);
+  --color-primary-foreground:   oklch(0.08 0.02 265);
 
   /* ── Secondary / muted ───────────────────────────────────────── */
-  --color-secondary:            oklch(0.28 0.025 215);
-  --color-secondary-foreground: oklch(0.96 0.005 215);
-  --color-muted:                oklch(0.28 0.025 215);
-  --color-muted-foreground:     oklch(0.65 0.015 215);
+  --color-secondary:            oklch(0.15 0.03 265);
+  --color-secondary-foreground: oklch(0.96 0.01  60);
+  --color-muted:                oklch(0.15 0.03 265);
+  --color-muted-foreground:     oklch(0.60 0.01  60);
 
-  /* ── Accent — warm sandy tint ────────────────────────────────── */
-  --color-accent:               oklch(0.30 0.04 52);
-  --color-accent-foreground:    oklch(0.83 0.11 78);
+  /* ── Accent — Black Cherry #6a040f ───────────────────────────── */
+  --color-accent:               oklch(0.22 0.09  18);
+  --color-accent-foreground:    oklch(0.85 0.15  78);
 
-  /* ── Destructive — Burnt Peach #e76f51 ───────────────────────── */
-  --color-destructive:          oklch(0.65 0.15 33);
+  /* ── Destructive — Brick Ember #d00000 ───────────────────────── */
+  --color-destructive:          oklch(0.48 0.19  25);
 
   /* ── Borders / inputs ────────────────────────────────────────── */
-  --color-border:               oklch(0.33 0.025 215);
-  --color-input:                oklch(0.28 0.025 215);
-  --color-ring:                 oklch(0.62 0.085 185);
+  --color-border:               oklch(0.20 0.04 265);
+  --color-input:                oklch(0.13 0.03 265);
+  --color-ring:                 oklch(0.78 0.15  68);
 
-  /* ── Charts — full palette ───────────────────────────────────── */
-  --color-chart-1:              oklch(0.62 0.085 185);   /* Verdigris   */
-  --color-chart-2:              oklch(0.83 0.11  78);    /* Jasmine     */
-  --color-chart-3:              oklch(0.77 0.12  52);    /* Sandy Brown */
-  --color-chart-4:              oklch(0.65 0.15  33);    /* Burnt Peach */
-  --color-chart-5:              oklch(0.42 0.04 215);    /* Charcoal    */
+  /* ── Charts — fire gradient ──────────────────────────────────── */
+  --color-chart-1:              oklch(0.48 0.19  25);   /* Brick Ember   */
+  --color-chart-2:              oklch(0.52 0.18  35);   /* Red Ochre     */
+  --color-chart-3:              oklch(0.62 0.17  45);   /* Autumn Leaf   */
+  --color-chart-4:              oklch(0.72 0.16  58);   /* Dark Orange   */
+  --color-chart-5:              oklch(0.85 0.15  78);   /* Amber Flame   */
 
-  /* ── Sidebar ─────────────────────────────────────────────────── */
-  --color-sidebar:              oklch(0.13 0.022 215);
-  --color-sidebar-foreground:   oklch(0.96 0.005 215);
-  --color-sidebar-primary:      oklch(0.62 0.085 185);
-  --color-sidebar-primary-foreground: oklch(0.98 0 0);
-  --color-sidebar-accent:       oklch(0.28 0.03 215);
-  --color-sidebar-accent-foreground:  oklch(0.83 0.11 78);
-  --color-sidebar-border:       oklch(0.28 0.022 215);
-  --color-sidebar-ring:         oklch(0.62 0.085 185);
+  /* ── Sidebar — Night Bordeaux #370617 ────────────────────────── */
+  --color-sidebar:              oklch(0.09 0.04  18);
+  --color-sidebar-foreground:   oklch(0.96 0.01  60);
+  --color-sidebar-primary:      oklch(0.85 0.15  78);
+  --color-sidebar-primary-foreground: oklch(0.08 0.02 265);
+  --color-sidebar-accent:       oklch(0.22 0.09  18);
+  --color-sidebar-accent-foreground:  oklch(0.85 0.15  78);
+  --color-sidebar-border:       oklch(0.16 0.05  18);
+  --color-sidebar-ring:         oklch(0.78 0.15  68);
 }
 
 /* CSS custom properties for shadcn internals */
 :root {
   --radius: 0.625rem;
-  --background:           oklch(0.17 0.025 215);
-  --foreground:           oklch(0.96 0.005 215);
-  --card:                 oklch(0.23 0.028 215);
-  --card-foreground:      oklch(0.96 0.005 215);
-  --popover:              oklch(0.23 0.028 215);
-  --popover-foreground:   oklch(0.96 0.005 215);
-  --primary:              oklch(0.62 0.085 185);
-  --primary-foreground:   oklch(0.98 0 0);
-  --secondary:            oklch(0.28 0.025 215);
-  --secondary-foreground: oklch(0.96 0.005 215);
-  --muted:                oklch(0.28 0.025 215);
-  --muted-foreground:     oklch(0.65 0.015 215);
-  --accent:               oklch(0.30 0.04 52);
-  --accent-foreground:    oklch(0.83 0.11 78);
-  --destructive:          oklch(0.65 0.15 33);
-  --border:               oklch(0.33 0.025 215);
-  --input:                oklch(0.28 0.025 215);
-  --ring:                 oklch(0.62 0.085 185);
+  --background:           oklch(0.07 0.025 265);
+  --foreground:           oklch(0.96 0.01  60);
+  --card:                 oklch(0.11 0.025 265);
+  --card-foreground:      oklch(0.96 0.01  60);
+  --popover:              oklch(0.11 0.025 265);
+  --popover-foreground:   oklch(0.96 0.01  60);
+  --primary:              oklch(0.85 0.15  78);
+  --primary-foreground:   oklch(0.08 0.02 265);
+  --secondary:            oklch(0.15 0.03 265);
+  --secondary-foreground: oklch(0.96 0.01  60);
+  --muted:                oklch(0.15 0.03 265);
+  --muted-foreground:     oklch(0.60 0.01  60);
+  --accent:               oklch(0.22 0.09  18);
+  --accent-foreground:    oklch(0.85 0.15  78);
+  --destructive:          oklch(0.48 0.19  25);
+  --border:               oklch(0.20 0.04 265);
+  --input:                oklch(0.13 0.03 265);
+  --ring:                 oklch(0.78 0.15  68);
 }
 
 @layer base {
