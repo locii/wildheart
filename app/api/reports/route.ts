@@ -7,11 +7,26 @@ import {
   startOfYear, endOfYear,
 } from "date-fns";
 
+const VALID_PERIODS = new Set<ReportPeriod>(["week", "month", "year", "fy"]);
+
+function startOfFinancialYear(d: Date): Date {
+  // FY starts 1 Jul — if we're in Jul-Dec the FY started this calendar year; Jan-Jun it started last year
+  const fyStartYear = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1;
+  return new Date(fyStartYear, 6, 1);
+}
+
+function endOfFinancialYear(d: Date): Date {
+  return endOfMonth(new Date(startOfFinancialYear(d).getFullYear() + 1, 5, 1));
+}
+
 export async function GET(req: NextRequest) {
   const supabase = createServiceClient();
   const { searchParams } = req.nextUrl;
 
-  const period = (searchParams.get("period") ?? "month") as ReportPeriod;
+  const rawPeriod = searchParams.get("period") ?? "month";
+  const period: ReportPeriod = VALID_PERIODS.has(rawPeriod as ReportPeriod)
+    ? (rawPeriod as ReportPeriod)
+    : "month";
   const anchor = searchParams.get("anchor") ?? new Date().toISOString();
   const locationId = searchParams.get("locationId") ?? undefined;
   const d = new Date(anchor);
@@ -27,6 +42,10 @@ export async function GET(req: NextRequest) {
     case "year":
       from = startOfYear(d);
       to = endOfYear(d);
+      break;
+    case "fy":
+      from = startOfFinancialYear(d);
+      to = endOfFinancialYear(d);
       break;
     default:
       from = startOfMonth(d);

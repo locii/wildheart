@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type ReportPeriod = "week" | "month" | "year";
+export type ReportPeriod = "week" | "month" | "year" | "fy";
 
 export interface ReportBucket {
   label: string;
@@ -105,7 +105,8 @@ function buildBuckets(
       const weekOfMonth = Math.ceil(d.getDate() / 7);
       label = `Wk ${weekOfMonth}`;
     } else {
-      // Month label
+      // year / fy — monthly buckets
+      // Month label (used for both year and financial year)
       label = d.toLocaleDateString("en-AU", { month: "short" });
     }
     const existing = bucketMap.get(label) ?? { revenue: 0, count: 0 };

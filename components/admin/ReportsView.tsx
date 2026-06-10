@@ -9,6 +9,10 @@ import {
   subWeeks, subMonths, subYears,
   format, startOfMonth, startOfYear, startOfWeek,
 } from "date-fns";
+
+function financialYear(d: Date): number {
+  return d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear();
+}
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReportData, ReportPeriod } from "@/lib/reports";
@@ -17,6 +21,7 @@ const PERIODS: { value: ReportPeriod; label: string }[] = [
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
   { value: "year", label: "Year" },
+  { value: "fy", label: "Fin. Year" },
 ];
 
 export function ReportsView() {
@@ -44,7 +49,7 @@ export function ReportsView() {
   function navigate(dir: 1 | -1) {
     setAnchor((prev) => {
       if (period === "week") return dir === 1 ? addWeeks(prev, 1) : subWeeks(prev, 1);
-      if (period === "year") return dir === 1 ? addYears(prev, 1) : subYears(prev, 1);
+      if (period === "year" || period === "fy") return dir === 1 ? addYears(prev, 1) : subYears(prev, 1);
       return dir === 1 ? addMonths(prev, 1) : subMonths(prev, 1);
     });
   }
@@ -52,6 +57,7 @@ export function ReportsView() {
   function periodLabel() {
     if (period === "week") return `${format(new Date(from), "d MMM")} – ${format(new Date(to), "d MMM yyyy")}`;
     if (period === "year") return format(startOfYear(anchor), "yyyy");
+    if (period === "fy") return `FY${financialYear(anchor)}`;
     return format(startOfMonth(anchor), "MMMM yyyy");
   }
 
