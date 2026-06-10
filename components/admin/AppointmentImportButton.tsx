@@ -17,13 +17,15 @@ type Mappings = {
 interface PreviewData {
   toImport: AppointmentRow[];
   skipped: number;
+  alreadyExists: number;
+  intentionallySkipped: number;
   invalid: { email: string; issues: string[] }[];
   parseErrors: string[];
   unknownTypes: string[];
   unknownLocations: string[];
 }
 
-type Step = "upload" | "mapping" | "preview" | "done";
+type Step = "upload" | "mapping" | "preview" | "importing" | "done";
 
 export function AppointmentImportButton({
   locations = [],
@@ -42,10 +44,12 @@ export function AppointmentImportButton({
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
 
   function reset() {
     setCsv(""); setPreview(null); setResult(null); setError(null);
     setMappings({ types: {}, locations: {} });
+    setImportProgress(null);
     setStep("upload");
     if (fileRef.current) fileRef.current.value = "";
   }
@@ -96,17 +100,45 @@ export function AppointmentImportButton({
   }
 
   async function confirm() {
-    setLoading(true);
+    if (!preview) return;
+    setImportProgress({ current: 0, total: preview.toImport.length });
+    setStep("importing");
+
     const res = await fetch("/api/appointments/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ csv, confirm: true, mappings }),
     });
-    const data = await res.json();
-    setLoading(false);
-    setResult({ imported: data.imported, skipped: data.skipped });
-    router.refresh();
-    setStep("done");
+
+    if (!res.body) {
+      setStep("done");
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop()!;
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const data = JSON.parse(line);
+          if (data.done) {
+            setResult({ imported: data.imported, skipped: data.skipped });
+            router.refresh();
+            setStep("done");
+          } else if (data.progress !== undefined) {
+            setImportProgress({ current: data.progress, total: data.total });
+          }
+        } catch {}
+      }
+    }
   }
 
   const allMapped = preview
@@ -227,8 +259,13 @@ export function AppointmentImportButton({
           {step === "preview" && preview && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">{preview.toImport.length}</strong> appointments will be imported ·{" "}
-                <strong className="text-foreground">{preview.skipped}</strong> already exist or skipped.
+                <strong className="text-foreground">{preview.toImport.length}</strong> appointments will be imported
+                {preview.alreadyExists > 0 && (
+                  <> · <strong className="text-foreground">{preview.alreadyExists}</strong> already in database</>
+                )}
+                {preview.intentionallySkipped > 0 && (
+                  <> · <strong className="text-foreground">{preview.intentionallySkipped}</strong> skipped</>
+                )}
               </p>
 
               {preview.invalid.length > 0 && (
@@ -273,6 +310,23 @@ export function AppointmentImportButton({
                 >
                   {loading ? "Importing…" : `Import ${preview.toImport.length}`}
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {step === "importing" && importProgress && (
+            <div className="space-y-6 py-6">
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Importing appointments…</p>
+                <p className="text-xs text-muted-foreground">
+                  {importProgress.current} of {importProgress.total}
+                </p>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-primary h-full rounded-full transition-all duration-150 ease-out"
+                  style={{ width: `${Math.round((importProgress.current / importProgress.total) * 100)}%` }}
+                />
               </div>
             </div>
           )}
