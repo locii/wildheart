@@ -16,6 +16,15 @@ type ClientRow = { id: string; email: string; last_appointment_at: string | null
 const CHUNK = 200;
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handleImport(req);
+  } catch (err) {
+    console.error("[import]", err);
+    return NextResponse.json({ error: String(err), parseErrors: [], toImport: [], skipped: 0 }, { status: 500 });
+  }
+}
+
+async function handleImport(req: NextRequest) {
   const supabase = createServiceClient();
   const body = await req.json() as { csv: string; confirm?: boolean; mappings?: Mappings };
   const mappings: Mappings = body.mappings ?? { types: {}, locations: {} };
@@ -43,19 +52,28 @@ export async function POST(req: NextRequest) {
     (data ?? []).forEach(c => clientRowsAll.push(c));
   }
 
-  // Existing appointments: use a date range covering the whole CSV — much more reliable
-  // than .in("start_at", [...]) which can fail silently on large lists or timestamp format mismatches
+  // Existing appointments: range query covering the whole CSV — reliable and avoids
+  // the URL-length issues of .in("start_at", [...]).  Paginate past Supabase's 1000-row cap.
   type ExistingAppt = { client_id: string; location_id: string; start_at: string };
   const existingApptAll: ExistingAppt[] = [];
   if (rows.length > 0) {
     const minStart = rows.reduce((m, r) => r.startAt < m ? r.startAt : m, rows[0].startAt);
     const maxStart = rows.reduce((m, r) => r.startAt > m ? r.startAt : m, rows[0].startAt);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase.from("appointments") as any)
-      .select("client_id, location_id, start_at")
-      .gte("start_at", minStart)
-      .lte("start_at", maxStart) as { data: ExistingAppt[] | null };
-    (data ?? []).forEach(a => existingApptAll.push(a));
+    const PAGE = 1000;
+    let offset = 0;
+    while (true) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from("appointments") as any)
+        .select("client_id, location_id, start_at")
+        .gte("start_at", minStart)
+        .lte("start_at", maxStart)
+        .range(offset, offset + PAGE - 1) as { data: ExistingAppt[] | null; error: { message: string } | null };
+      if (error) throw new Error(`Dedup query failed: ${error.message}`);
+      const page = data ?? [];
+      page.forEach(a => existingApptAll.push(a));
+      if (page.length < PAGE) break;
+      offset += PAGE;
+    }
   }
 
   const clientIdByEmail = new Map(
