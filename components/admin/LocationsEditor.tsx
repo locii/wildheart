@@ -57,7 +57,7 @@ export function LocationsEditor() {
 
   function startEdit(l: Location) {
     setEditingId(l.id);
-    setEditDraft({ name: l.name, timezone: l.timezone, color: l.color });
+    setEditDraft({ name: l.name, timezone: l.timezone, color: l.color ?? null });
     setAdding(false);
     setDeleteError(null);
   }

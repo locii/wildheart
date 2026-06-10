@@ -5,9 +5,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const supabase = createServiceClient();
   const { id } = await params;
   const body = await req.json() as Partial<{ name: string; timezone: string; color: string | null }>;
+  const payload: Record<string, unknown> = {};
+  if (body.name !== undefined) payload.name = body.name;
+  if (body.timezone !== undefined) payload.timezone = body.timezone;
+  if (body.color !== undefined) payload.color = body.color; // only include when set — column may not exist yet
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from("locations") as any)
-    .update(body)
+    .update(payload)
     .eq("id", id)
     .select()
     .single();
