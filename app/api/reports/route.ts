@@ -53,13 +53,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchReport(supabase, {
-      period,
+    const [data, { count: allTimeSessions }, { count: allTimeClients }] = await Promise.all([
+      fetchReport(supabase, { period, from: from.toISOString(), to: to.toISOString(), locationId }),
+      supabase.from("appointments").select("id", { count: "exact", head: true }).is("cancelled_at", null),
+      supabase.from("clients").select("id", { count: "exact", head: true }),
+    ]);
+    return NextResponse.json({
+      data,
       from: from.toISOString(),
       to: to.toISOString(),
-      locationId,
+      allTimeSessions: allTimeSessions ?? 0,
+      allTimeClients: allTimeClients ?? 0,
     });
-    return NextResponse.json({ data, from: from.toISOString(), to: to.toISOString() });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

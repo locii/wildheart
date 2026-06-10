@@ -31,6 +31,8 @@ export function ReportsView() {
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
+  const [allTimeSessions, setAllTimeSessions] = useState<number | null>(null);
+  const [allTimeClients, setAllTimeClients] = useState<number | null>(null);
 
   const load = useCallback(async (p: ReportPeriod, a: Date) => {
     setLoading(true);
@@ -41,6 +43,8 @@ export function ReportsView() {
     setData(json.data);
     setFrom(json.from);
     setTo(json.to);
+    if (json.allTimeSessions !== undefined) setAllTimeSessions(json.allTimeSessions);
+    if (json.allTimeClients !== undefined) setAllTimeClients(json.allTimeClients);
     setLoading(false);
   }, []);
 
@@ -79,12 +83,17 @@ export function ReportsView() {
 
   return (
     <div className="px-4 py-5 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-semibold">Reports</h1>
         <Button variant="outline" size="sm" onClick={downloadCSV} disabled={!data}>
           <Download className="h-3.5 w-3.5 mr-1" /> Export CSV
         </Button>
       </div>
+      {allTimeSessions !== null && (
+        <p className="text-sm text-muted-foreground mb-5">
+          {allTimeSessions.toLocaleString()} sessions · {allTimeClients?.toLocaleString()} clients all time
+        </p>
+      )}
 
       {/* Period selector */}
       <div className="flex items-center gap-2 mb-4">
