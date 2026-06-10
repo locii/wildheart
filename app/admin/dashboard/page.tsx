@@ -88,12 +88,12 @@ function DaySection({
     <div className="mb-4">
       {/* Day header */}
       <div className={`flex items-center gap-2 py-2 mb-1 sticky top-0 bg-muted/50 z-10`}>
-        <span className={`text-sm font-semibold ${isCurrentDay ? "text-gray-900" : "text-gray-400"}`}>
+        <span className={`text-sm font-semibold ${isCurrentDay ? "text-gray-300" : "text-gray-400"}`}>
           {dayLabel}
         </span>
         <span className="text-xs text-gray-400">{dateLabel}</span>
         {isCurrentDay && (
-          <span className="ml-auto text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+          <span className="ml-auto text-[10px] font-medium  bg-slate-700 rounded-full px-2 py-0.5 mr-2">
             Today
           </span>
         )}
@@ -145,16 +145,6 @@ function AgendaRow({ appointment: a }: { appointment: AppointmentWithRelations }
             <MapPin className="h-2.5 w-2.5" />{a.location.name}
           </span>
         </div>
-      </div>
-
-      {/* Right badges */}
-      <div className="shrink-0">
-        {isNow && (
-          <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-600">Now</Badge>
-        )}
-        {!isNow && a.type.price > 0 && !a.paid && (
-          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600">Unpaid</Badge>
-        )}
       </div>
     </Link>
   );

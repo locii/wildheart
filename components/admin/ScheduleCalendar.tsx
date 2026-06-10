@@ -674,14 +674,11 @@ function TimeGrid({
                         </div>
                       ) : (
                         <div className="px-1.5 py-0.5">
-                          <div className={`font-semibold truncate text-white leading-tight ${ev.height <= SLOT_H * 2 ? "text-[9px]" : "text-[10px]"}`}>
+                          <div className={`font-semibold truncate text-white leading-tight ${ev.height <= SLOT_H * 2 ? "text-[11px]" : "text-[12px]"}`}>
                             {ev.title}
                           </div>
                           {ev.height > SLOT_H * 2 && ev.typeName && (
-                            <div className="text-[9px] text-white/80 truncate">{ev.typeName}</div>
-                          )}
-                          {ev.height > SLOT_H * 3 && (ev.price ?? 0) > 0 && (
-                            <div className="text-[9px] text-white/70">${ev.price}</div>
+                            <div className="text-[11px] text-white/80 truncate">{ev.typeName}</div>
                           )}
                         </div>
                       )}

@@ -210,10 +210,10 @@ function AppointmentCard({ appointment: a }: { appointment: AppointmentWithRelat
           <div className="text-xs text-gray-500 mt-0.5">{a.type.name}</div>
         </div>
         <div className="text-right shrink-0 space-y-1">
-          <div className="text-xs font-medium text-gray-700 tabular-nums">
+          <div className="text-xs font-medium text-gray-300 tabular-nums">
             {format(start, "EEE d MMM")}
           </div>
-          <div className="text-xs text-gray-500 tabular-nums">
+          <div className="text-xs text-gray-400 tabular-nums">
             {format(start, "h:mm a")}
           </div>
         </div>
