@@ -198,7 +198,7 @@ function AppointmentCard({ appointment: a }: { appointment: AppointmentWithRelat
   return (
     <Link
       href={`/admin/appointments/${a.id}`}
-      className={`block bg-card border rounded-xl p-4 active:scale-[0.99] transition-transform ${
+      className={`block bg-card border rounded-xl p-4 active:scale-[0.99] transition-transform  ${
         isCancelled ? "opacity-50" : ""
       }`}
     >

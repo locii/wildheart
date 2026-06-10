@@ -38,8 +38,11 @@ export async function sendSms(
 
   let body: string;
   switch (type) {
-    case "booking":
-      body = `Hi ${client.first_name}, your ${apptType.name} at ${location.name} is confirmed for ${date} at ${time}. Manage: ${manageUrl}`;
+    case "booking": {
+      const where = location.address ? `${location.name}, ${location.address}` : location.name;
+      body = `Hi ${client.first_name}, your ${apptType.name} at ${where} is confirmed for ${date} at ${time}. Manage: ${manageUrl}`;
+      break;
+    }
       break;
     case "cancellation":
       body = `Hi ${client.first_name}, your ${apptType.name} on ${date} at ${time} has been cancelled. – Wildheart Psychotherapy`;

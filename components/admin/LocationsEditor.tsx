@@ -5,13 +5,14 @@ import { Pencil, Check, X, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { locationColor, COLOR_SWATCHES } from "@/lib/location-colors";
 import type { Location } from "@/lib/supabase/types";
 
-type Draft = { name: string; timezone: string; color: string | null };
-type NewDraft = { name: string; slug: string; timezone: string; color: string | null };
+type Draft = { name: string; timezone: string; color: string | null; address: string };
+type NewDraft = { name: string; slug: string; timezone: string; color: string | null; address: string };
 
-const emptyNew = (): NewDraft => ({ name: "", slug: "", timezone: "Australia/Melbourne", color: null });
+const emptyNew = (): NewDraft => ({ name: "", slug: "", timezone: "Australia/Melbourne", color: null, address: "" });
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -40,7 +41,7 @@ export function LocationsEditor() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<Draft>({ name: "", timezone: "", color: null });
+  const [editDraft, setEditDraft] = useState<Draft>({ name: "", timezone: "", color: null, address: "" });
   const [adding, setAdding] = useState(false);
   const [newDraft, setNewDraft] = useState<NewDraft>(emptyNew());
   const [saving, setSaving] = useState(false);
@@ -57,7 +58,7 @@ export function LocationsEditor() {
 
   function startEdit(l: Location) {
     setEditingId(l.id);
-    setEditDraft({ name: l.name, timezone: l.timezone, color: l.color ?? null });
+    setEditDraft({ name: l.name, timezone: l.timezone, color: l.color ?? null, address: l.address ?? "" });
     setAdding(false);
     setDeleteError(null);
   }
@@ -67,7 +68,7 @@ export function LocationsEditor() {
     await fetch(`/api/locations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editDraft.name.trim(), timezone: editDraft.timezone.trim(), color: editDraft.color }),
+      body: JSON.stringify({ name: editDraft.name.trim(), timezone: editDraft.timezone.trim(), color: editDraft.color, address: editDraft.address.trim() || null }),
     });
     setEditingId(null);
     await load();
@@ -130,6 +131,16 @@ export function LocationsEditor() {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Timezone</Label>
                     <Input value={editDraft.timezone} onChange={(e) => setEditDraft({ ...editDraft, timezone: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Address</Label>
+                    <Textarea
+                      rows={2}
+                      value={editDraft.address}
+                      onChange={(e) => setEditDraft({ ...editDraft, address: e.target.value })}
+                      placeholder="123 Example St, Suburb VIC 3000"
+                      className="text-sm resize-none"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Colour</Label>
@@ -201,6 +212,16 @@ export function LocationsEditor() {
             <Input
               value={newDraft.timezone}
               onChange={(e) => setNewDraft((d) => ({ ...d, timezone: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Address</Label>
+            <Textarea
+              rows={2}
+              value={newDraft.address}
+              onChange={(e) => setNewDraft((d) => ({ ...d, address: e.target.value }))}
+              placeholder="123 Example St, Suburb VIC 3000"
+              className="text-sm resize-none"
             />
           </div>
           <div className="space-y-1.5">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   addMonths, subMonths, startOfMonth, endOfMonth,
   eachDayOfInterval, getDay, format, isBefore, startOfDay, isSameDay, parseISO,
@@ -25,6 +25,7 @@ export function AdminBookingFlow({
   adminEmail: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("client");
   const [client, setClient] = useState<Client | null>(null);
   const [newClient, setNewClient] = useState({ first_name: "", last_name: "", phone: "", email: "" });
@@ -51,6 +52,19 @@ export function AdminBookingFlow({
     time: "Time",
     confirm: "Confirm",
   };
+
+  // Pre-select client when arriving via "Book again" link
+  useEffect(() => {
+    const clientId = searchParams.get("clientId");
+    if (!clientId) return;
+    fetch(`/api/clients/${encodeURIComponent(clientId)}`)
+      .then((r) => r.json())
+      .then(({ client: found }) => {
+        if (found) { setClient(found); setIsNewClient(false); setStep("location"); }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function book() {
     setBooking(true);

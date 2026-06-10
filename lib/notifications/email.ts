@@ -42,6 +42,7 @@ export async function sendEmail(
         clientFirstName: client.first_name,
         appointmentType: apptType.name,
         locationName: location.name,
+        locationAddress: location.address,
         date,
         time,
         price: apptType.price,

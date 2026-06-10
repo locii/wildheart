@@ -7,6 +7,7 @@ interface Props {
   clientFirstName: string;
   appointmentType: string;
   locationName: string;
+  locationAddress?: string | null;
   date: string;       // formatted: "Tuesday, 17 June 2025"
   time: string;       // formatted: "10:00 – 10:50 am"
   price?: number;
@@ -19,6 +20,7 @@ export function BookingConfirmationEmail({
   clientFirstName,
   appointmentType,
   locationName,
+  locationAddress,
   date,
   time,
   price,
@@ -39,7 +41,7 @@ export function BookingConfirmationEmail({
 
           <Section style={card}>
             <Text style={detail}><strong>What:</strong> {appointmentType}</Text>
-            <Text style={detail}><strong>Where:</strong> {locationName}</Text>
+            <Text style={detail}><strong>Where:</strong> {locationName}{locationAddress ? `, ${locationAddress}` : ""}</Text>
             <Text style={detail}><strong>When:</strong> {date}</Text>
             <Text style={detail}><strong>Time:</strong> {time}</Text>
             {price !== undefined && price > 0 && (

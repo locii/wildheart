@@ -5,8 +5,16 @@ import type { AppointmentWithRelations, Client, IntakeForm } from "@/lib/supabas
 
 type Props = { params: Promise<{ id: string }> };
 
+// Accepts plain UUID or "firstname-lastname-uuid" slug format
+function extractUuid(param: string): string {
+  const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const match = param.match(uuidRe);
+  return match ? match[0] : param;
+}
+
 export default async function ClientDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = extractUuid(rawId);
   const supabase = createServiceClient();
 
   const [clientRes, appointmentsRes, intakeRes] = await Promise.all([

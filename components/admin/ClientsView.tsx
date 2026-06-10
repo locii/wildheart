@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Client } from "@/lib/supabase/types";
 import type { ImportRow } from "@/lib/import";
+import { clientUrl } from "@/lib/client-url";
 
 const PER_PAGE = 50;
 
@@ -91,7 +92,7 @@ export function ClientsView({ initialClients, initialTotal }: Props) {
           {clients.map((client) => (
             <Link
               key={client.id}
-              href={`/admin/clients/${client.id}`}
+              href={clientUrl(client)}
               className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/50 transition-colors"
             >
               <div className="min-w-0">

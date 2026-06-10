@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import {
   MapPin, Clock, DollarSign, User, Mail, Phone,
-  AlertCircle, ExternalLink, Send, Pencil, Check, X,
+  AlertCircle, ExternalLink, Send, Pencil, Check, X, CalendarPlus,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
+import { clientUrl } from "@/lib/client-url";
 import type { NotificationType } from "@/lib/notifications/dispatch";
 
 const TZ = "Australia/Melbourne";
@@ -221,7 +222,7 @@ export function AppointmentSheet({
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2.5">
                       <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <Link href={`/admin/clients/${appt.client.id}`} className="font-medium hover:underline">
+                      <Link href={clientUrl(appt.client)} className="font-medium hover:underline">
                         {appt.client.first_name} {appt.client.last_name}
                       </Link>
                     </div>
@@ -256,12 +257,20 @@ export function AppointmentSheet({
                       Cancel
                     </Button>
                   </div>
-                  <Link
-                    href={`/admin/appointments/${appt.id}`}
-                    className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Full details <ExternalLink className="h-3 w-3" />
-                  </Link>
+                  <div className="flex items-center justify-between">
+                    <Link
+                      href={`/admin/appointments/new?clientId=${appt.client.id}`}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <CalendarPlus className="h-3 w-3" /> Book again
+                    </Link>
+                    <Link
+                      href={`/admin/appointments/${appt.id}`}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Full details <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

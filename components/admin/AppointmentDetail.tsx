@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
+import { clientUrl } from "@/lib/client-url";
 import type { NotificationType } from "@/lib/notifications/dispatch";
 
 type AnyNotifyType = NotificationType | "intake";
@@ -115,7 +116,7 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
           <div className="px-4 py-4 space-y-2.5">
             <div className="flex items-center gap-2.5 text-sm">
               <User className="h-4 w-4 text-gray-400 shrink-0" />
-              <Link href={`/admin/clients/${appt.client.id}`} className="font-medium hover:underline">
+              <Link href={clientUrl(appt.client)} className="font-medium hover:underline">
                 {appt.client.first_name} {appt.client.last_name}
               </Link>
             </div>

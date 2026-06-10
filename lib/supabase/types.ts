@@ -8,6 +8,7 @@ export type Location = {
   slug: string;
   timezone: string;
   color?: string | null;
+  address?: string | null;
   created_at: string;
 };
 
