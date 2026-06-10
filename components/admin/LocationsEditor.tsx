@@ -67,7 +67,7 @@ export function LocationsEditor() {
     await fetch(`/api/locations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editDraft.name.trim(), timezone: editDraft.timezone.trim() }),
+      body: JSON.stringify({ name: editDraft.name.trim(), timezone: editDraft.timezone.trim(), color: editDraft.color }),
     });
     setEditingId(null);
     await load();
