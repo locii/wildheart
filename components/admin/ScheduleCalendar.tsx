@@ -214,20 +214,52 @@ export function ScheduleCalendar({
     const rangeStart = new Date(from);
     const rangeEnd = new Date(to);
 
-    const blockEvents: CalEvent[] = (overrides ?? [])
-      .filter((o) => {
-        const loc = locations.find((l) => l.id === o.location_id);
-        return locationFilter === "all" || loc?.slug === locationFilter;
-      })
-      .flatMap((o) => {
-        const loc = locations.find((l) => l.id === o.location_id);
-        const startTime = o.start_time ?? "00:00:00";
-        const endTime = o.end_time ?? "23:59:00";
-        const eventStart = fromZonedTime(new Date(`${o.date}T${startTime}`), TZ);
-        const eventEnd = fromZonedTime(new Date(`${o.date}T${endTime}`), TZ);
-        if (eventEnd < rangeStart || eventStart > rangeEnd) return [];
-        return [{
-          id: `block-${o.id}`,
+    // Filter overrides relevant to the current location filter
+    const relevantOverrides = (overrides ?? []).filter((o) => {
+      const loc = locations.find((l) => l.id === o.location_id);
+      return locationFilter === "all" || loc?.slug === locationFilter;
+    });
+
+    // Group by (date, start_time, end_time) to collapse "all locations" blocks into one
+    const overrideGroups = new Map<string, typeof relevantOverrides>();
+    for (const o of relevantOverrides) {
+      const key = `${o.date}|${o.start_time ?? ""}|${o.end_time ?? ""}`;
+      const g = overrideGroups.get(key) ?? [];
+      g.push(o);
+      overrideGroups.set(key, g);
+    }
+
+    const blockEvents: CalEvent[] = [];
+    for (const group of overrideGroups.values()) {
+      const o = group[0];
+      const groupIds = group.map((g) => g.id);
+      const isMultiLocation = group.length > 1;
+      const loc = locations.find((l) => l.id === o.location_id);
+      const startTime = o.start_time ?? "00:00:00";
+      const endTime = o.end_time ?? "23:59:00";
+
+      // Expand repeat_weekly across visible days matching the same weekday
+      const baseDate = new Date(`${o.date}T12:00:00`);
+      const targetDay = baseDate.getDay();
+      const datesToRender: string[] = [];
+
+      if (o.repeat_weekly) {
+        let cur = new Date(rangeStart);
+        while (cur <= rangeEnd) {
+          const curStr = format(cur, "yyyy-MM-dd");
+          if (cur.getDay() === targetDay && curStr >= o.date) datesToRender.push(curStr);
+          cur = addDays(cur, 1);
+        }
+      } else {
+        datesToRender.push(o.date);
+      }
+
+      for (const dateStr of datesToRender) {
+        const eventStart = fromZonedTime(new Date(`${dateStr}T${startTime}`), TZ);
+        const eventEnd = fromZonedTime(new Date(`${dateStr}T${endTime}`), TZ);
+        if (eventEnd < rangeStart || eventStart > rangeEnd) continue;
+        blockEvents.push({
+          id: `block-${o.id}-${dateStr}`,
           title: o.notes ? `Blocked · ${o.notes}` : "Blocked",
           start: eventStart.toISOString(),
           end: eventEnd.toISOString(),
@@ -235,16 +267,18 @@ export function ScheduleCalendar({
           textColor: "oklch(0.60 0 0)",
           kind: "block" as const,
           overrideId: o.id,
+          groupIds: isMultiLocation ? groupIds : undefined,
           locationId: o.location_id,
-          locationSlug: loc?.slug ?? "",
-          date: o.date,
+          locationSlug: isMultiLocation ? "" : (loc?.slug ?? ""),
+          date: dateStr,
           startTime: o.start_time,
           endTime: o.end_time,
           notes: o.notes ?? "",
           allDay: !o.start_time,
           repeatWeekly: o.repeat_weekly,
-        }];
-      });
+        });
+      }
+    }
 
     setEvents([...apptEvents, ...blockEvents]);
   }, [days, locationFilter, locations]);
@@ -313,6 +347,7 @@ export function ScheduleCalendar({
     } else {
       setEditingBlock({
         id: ev.overrideId!,
+        groupIds: ev.groupIds ?? [ev.overrideId!],
         locationId: ev.locationId!,
         date: ev.date!,
         allDay: ev.allDay ?? false,
@@ -760,8 +795,11 @@ function TimeGrid({
                       }}
                     >
                       {ev.kind === "block" ? (
-                        <div className="px-1.5 py-0.5 truncate text-[10px] leading-tight" style={{ color: ev.textColor ?? "#9ca3af" }}>
-                          {ev.title}
+                        <div className="px-1.5 py-0.5 text-[10px] leading-tight" style={{ color: ev.textColor ?? "#9ca3af" }}>
+                          <div className="truncate">{ev.title}</div>
+                          {ev.notes && ev.height > SLOT_H * 2 && (
+                            <div className="mt-0.5 opacity-75 line-clamp-3">{ev.notes}</div>
+                          )}
                         </div>
                       ) : (
                         <div className="px-1.5 py-0.5">
@@ -983,26 +1021,30 @@ function EditBlockDialog({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const isGrouped = block.groupIds.length > 1;
   const loc = locations.find((l) => l.id === block.locationId);
 
   async function save() {
     setSaving(true);
-    await fetch(`/api/availability/overrides/${block.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        start_time: allDay ? null : startTime + ":00",
-        end_time: allDay ? null : endTime + ":00",
-        notes: notes || null,
-        repeat_weekly: repeatWeekly,
-      }),
+    const body = JSON.stringify({
+      start_time: allDay ? null : startTime + ":00",
+      end_time: allDay ? null : endTime + ":00",
+      notes: notes || null,
+      repeat_weekly: repeatWeekly,
     });
+    await Promise.all(block.groupIds.map((id) =>
+      fetch(`/api/availability/overrides/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body,
+      })
+    ));
     onSaved();
   }
 
   async function deleteBlock() {
     setDeleting(true);
-    await fetch(`/api/availability/overrides/${block.id}`, { method: "DELETE" });
+    await Promise.all(block.groupIds.map((id) =>
+      fetch(`/api/availability/overrides/${id}`, { method: "DELETE" })
+    ));
     onSaved();
   }
 
@@ -1016,11 +1058,12 @@ function EditBlockDialog({
           <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-sm space-y-0.5">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
-              {loc?.name ?? "Unknown location"} · {format(parseISO(block.date), "EEE d MMM yyyy")}
+              {isGrouped ? "All locations" : (loc?.name ?? "Unknown location")} · {format(parseISO(block.date), "EEE d MMM yyyy")}
               {repeatWeekly && (
                 <span className="text-[10px] bg-blue-500/20 text-blue-400 rounded px-1.5 py-0.5 ml-auto">Weekly</span>
               )}
             </div>
+            {notes && <p className="text-xs text-foreground pt-0.5">{notes}</p>}
           </div>
 
           <button onClick={() => setAllDay((v) => !v)} className="flex items-center gap-3 w-full">
