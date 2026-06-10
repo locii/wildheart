@@ -32,22 +32,24 @@ export async function POST(req: NextRequest) {
   const locations = (locData ?? []) as Location[];
   const types     = (typeData ?? []) as AppointmentType[];
 
-  // Bulk duplicate detection — check per-client, not just per-time
   const emailList   = [...new Set(rows.map(r => r.email.toLowerCase()))];
   const startAtList = [...new Set(rows.map(r => r.startAt))];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [{ data: clientRows }, { data: existingApptRows }] = await Promise.all([
     (supabase.from("clients") as any).select("id, email").in("email", emailList),
-    (supabase.from("appointments") as any).select("client_id, start_at").in("start_at", startAtList),
-  ]) as [{ data: ClientRow[] | null }, { data: { client_id: string; start_at: string }[] | null }];
+    (supabase.from("appointments") as any).select("client_id, location_id, start_at").in("start_at", startAtList),
+  ]) as [{ data: ClientRow[] | null }, { data: { client_id: string; location_id: string; start_at: string }[] | null }];
 
   const clientIdByEmail = new Map(
     (clientRows ?? []).map(c => [c.email.toLowerCase(), c.id]),
   );
-  // Key: "clientId::startAt"
-  const existingSet = new Set(
+  // Deduplicate by client+time AND by location+time (guards against the no_overlap exclusion constraint)
+  const existingByClientTime = new Set(
     (existingApptRows ?? []).map(a => `${a.client_id}::${a.start_at}`),
+  );
+  const existingByLocationTime = new Set(
+    (existingApptRows ?? []).map(a => `${a.location_id}::${a.start_at}`),
   );
 
   const previewData = rows.map((row) => {
@@ -71,7 +73,9 @@ export async function POST(req: NextRequest) {
 
     const intentionallySkipped = locationSkipped || typeSkipped;
     const clientId = clientIdByEmail.get(row.email.toLowerCase());
-    const alreadyExists = !!clientId && existingSet.has(`${clientId}::${row.startAt}`);
+    const alreadyExists =
+      (!!clientId && existingByClientTime.has(`${clientId}::${row.startAt}`)) ||
+      (!!location && existingByLocationTime.has(`${location.id}::${row.startAt}`));
 
     return {
       row,
@@ -200,7 +204,19 @@ export async function POST(req: NextRequest) {
             const { data: insertedAppts, error: apptErr } = await (supabase.from("appointments") as any)
               .insert(appts).select("id") as { data: { id: string }[] | null; error: { message: string } | null };
             if (apptErr) {
-              importErrors.push(`Batch ${Math.floor(i / CHUNK) + 1}: ${apptErr.message}`);
+              // Batch hit a conflict (e.g. no_overlap exclusion constraint) — fall back to one-by-one
+              for (const appt of appts) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { data: single, error: singleErr } = await (supabase.from("appointments") as any)
+                  .insert(appt).select("id").single() as { data: { id: string } | null; error: { message: string } | null };
+                if (singleErr) {
+                  if (!singleErr.message.includes("no_overlap") && !singleErr.message.includes("exclusion")) {
+                    importErrors.push(singleErr.message);
+                  }
+                } else if (single) {
+                  imported += 1;
+                }
+              }
             } else {
               imported += (insertedAppts ?? []).length;
             }
