@@ -9,23 +9,60 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient();
   const { searchParams } = req.nextUrl;
 
-  let query = supabase
-    .from("appointments")
-    .select(`*, client:clients(*), location:locations(*), type:appointment_types(*)`)
-    .is("cancelled_at", null)
-    .order("start_at");
-
   const locationId = searchParams.get("locationId");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const q = searchParams.get("q")?.trim() ?? "";
+  const limit  = Math.min(parseInt(searchParams.get("limit")  ?? "50", 10), 200);
+  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const paginate = searchParams.has("limit");
+
+  const typeNames = searchParams.get("typeNames"); // comma-separated type names to include
+
+  // Resolve matching client IDs for search query
+  let clientIdFilter: string[] | null = null;
+  if (q) {
+    const term = `%${q}%`;
+    const { data: matchedClients } = await supabase
+      .from("clients")
+      .select("id")
+      .or(`first_name.ilike.${term},last_name.ilike.${term},email.ilike.${term}`);
+    clientIdFilter = (matchedClients ?? []).map((c: { id: string }) => c.id);
+  }
+
+  // Resolve type IDs for type-name filter
+  let typeIdFilter: string[] | null = null;
+  if (typeNames) {
+    const names = typeNames.split(",").map(n => n.trim()).filter(Boolean);
+    const { data: matchedTypes } = await supabase
+      .from("appointment_types")
+      .select("id")
+      .in("name", names);
+    typeIdFilter = (matchedTypes ?? []).map((t: { id: string }) => t.id);
+  }
+
+  let query = supabase
+    .from("appointments")
+    .select(`*, client:clients(*), location:locations(*), type:appointment_types(*)`, paginate ? { count: "exact" } : undefined)
+    .is("cancelled_at", null)
+    .order("start_at", { ascending: false });
 
   if (locationId) query = query.eq("location_id", locationId);
   if (from) query = query.gte("start_at", from);
   if (to) query = query.lte("start_at", to);
+  if (clientIdFilter !== null) {
+    if (clientIdFilter.length === 0) return NextResponse.json({ appointments: [], total: 0 });
+    query = query.in("client_id", clientIdFilter);
+  }
+  if (typeIdFilter !== null) {
+    if (typeIdFilter.length === 0) return NextResponse.json({ appointments: [], total: 0 });
+    query = query.in("type_id", typeIdFilter);
+  }
+  if (paginate) query = (query as typeof query).range(offset, offset + limit - 1);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ appointments: data });
+  return NextResponse.json({ appointments: data, total: count ?? undefined });
 }
 
 export async function POST(req: NextRequest) {

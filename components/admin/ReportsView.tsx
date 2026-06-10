@@ -10,7 +10,9 @@ import {
   subWeeks, subMonths, subYears,
   format, parse, startOfMonth, startOfYear, startOfWeek,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { AppointmentWithRelations } from "@/lib/supabase/types";
 
 function financialYear(d: Date): number {
   return d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear();
@@ -290,9 +292,150 @@ export function ReportsView() {
             <BreakdownCard title="By type" rows={data.byType} />
             <BreakdownCard title="By location" rows={data.byLocation} />
           </div>
+
+          {/* Appointments list */}
+          {from && to && (
+            <AppointmentsList
+              from={from} to={to} total={data.totalCount}
+              availableTypes={data.byType.map(t => t.name)}
+            />
+          )}
         </>
       ) : (
         <p className="text-sm text-gray-400 text-center py-12">No data available</p>
+      )}
+    </div>
+  );
+}
+
+const PAGE_SIZE = 20;
+
+function AppointmentsList({
+  from, to, total: initialTotal, availableTypes,
+}: {
+  from: string; to: string; total: number; availableTypes: string[];
+}) {
+  const [page, setPage] = useState(0);
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set());
+  const [rows, setRows] = useState<AppointmentWithRelations[]>([]);
+  const [total, setTotal] = useState(initialTotal);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setPage(0); }, [from, to, debouncedQ, activeTypes]);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedQ(q), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [q]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const params = new URLSearchParams({
+      from, to, limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE),
+    });
+    if (debouncedQ) params.set("q", debouncedQ);
+    if (activeTypes.size > 0) params.set("typeNames", [...activeTypes].join(","));
+    fetch(`/api/appointments?${params}`)
+      .then(r => r.json())
+      .then(({ appointments, total: t }) => {
+        if (!cancelled) {
+          setRows(appointments ?? []);
+          if (t !== undefined) setTotal(t);
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [from, to, page, debouncedQ, activeTypes]);
+
+  function toggleType(name: string) {
+    setActiveTypes(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  return (
+    <div className="bg-card border rounded-2xl overflow-hidden mb-6">
+      {/* Header: search + count */}
+      <div className="px-4 py-3 border-b flex items-center gap-3">
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide shrink-0">Appointments</p>
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search client…"
+            className="w-full pl-7 pr-3 py-1 text-xs bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <span className="text-xs text-muted-foreground shrink-0">{total.toLocaleString()}</span>
+      </div>
+
+      {/* Type filter chips */}
+      {availableTypes.length > 1 && (
+        <div className="px-4 py-2 border-b flex gap-1.5 flex-wrap">
+          {availableTypes.map(name => {
+            const on = activeTypes.has(name);
+            return (
+              <button key={name} onClick={() => toggleType(name)}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground border-border hover:border-muted-foreground"}`}>
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-8 text-center text-xs text-muted-foreground">Loading…</div>
+      ) : rows.length === 0 ? (
+        <div className="py-8 text-center text-xs text-muted-foreground">No appointments</div>
+      ) : (
+        <>
+          <div className="divide-y">
+            {rows.map((a) => (
+              <a key={a.id} href={`/admin/appointments/${a.id}`}
+                className="flex items-center px-4 py-2.5 hover:bg-muted/40 transition-colors gap-3">
+                <span className="text-muted-foreground text-xs w-24 shrink-0">
+                  {format(new Date(a.start_at), "d MMM yyyy")}
+                </span>
+                <span className="font-medium text-sm truncate flex-1">
+                  {a.client.first_name} {a.client.last_name}
+                </span>
+                <Badge variant="secondary" className="hidden sm:inline-flex shrink-0 max-w-40 truncate">
+                  {a.type.name}
+                </Badge>
+                <span className="text-xs font-medium shrink-0 w-12 text-right">
+                  ${a.type.price.toLocaleString()}
+                </span>
+              </a>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t flex items-center justify-between text-xs text-muted-foreground">
+              <span>Page {page + 1} of {totalPages}</span>
+              <div className="flex gap-1">
+                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+                  className="px-2.5 py-1 rounded-lg border disabled:opacity-40 hover:bg-muted/50 transition-colors">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+                  className="px-2.5 py-1 rounded-lg border disabled:opacity-40 hover:bg-muted/50 transition-colors">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
