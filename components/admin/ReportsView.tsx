@@ -115,10 +115,12 @@ export function ReportsView() {
       ) : data ? (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             <SummaryCard label="Revenue" value={`$${data.totalRevenue.toLocaleString()}`} />
-            <SummaryCard label="Appointments" value={String(data.totalCount)} />
+            <SummaryCard label="Sessions" value={String(data.totalCount)} />
+            <SummaryCard label="Clients" value={String(data.totalClients)} />
             <SummaryCard label="Avg value" value={`$${data.avgValue.toFixed(0)}`} />
+            <SummaryCard label="Per client" value={data.totalClients > 0 ? (data.totalCount / data.totalClients).toFixed(1) : "—"} />
           </div>
 
           {/* Chart */}

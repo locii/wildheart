@@ -12,6 +12,7 @@ export interface ReportBucket {
 export interface ReportData {
   totalRevenue: number;
   totalCount: number;
+  totalClients: number;
   avgValue: number;
   byType: { name: string; revenue: number; count: number }[];
   byLocation: { name: string; revenue: number; count: number }[];
@@ -27,6 +28,7 @@ interface ReportParams {
 
 interface ApptRow {
   start_at: string;
+  client_id: string;
   type: { name: string; price: number };
   location: { name: string };
 }
@@ -37,7 +39,7 @@ export async function fetchReport(
 ): Promise<ReportData> {
   let query = supabase
     .from("appointments")
-    .select("start_at, type:appointment_types(name, price), location:locations(name)")
+    .select("start_at, client_id, type:appointment_types(name, price), location:locations(name)")
     .gte("start_at", params.from)
     .lte("start_at", params.to)
     .is("cancelled_at", null);
@@ -54,6 +56,7 @@ export async function fetchReport(
 
   const totalRevenue = rows.reduce((s, r) => s + (r.type?.price ?? 0), 0);
   const totalCount = rows.length;
+  const totalClients = new Set(rows.map(r => r.client_id)).size;
   const avgValue = totalCount > 0 ? totalRevenue / totalCount : 0;
 
   // By type
@@ -83,7 +86,7 @@ export async function fetchReport(
   // Time buckets
   const buckets = buildBuckets(rows, params.period, params.from, params.to);
 
-  return { totalRevenue, totalCount, avgValue, byType, byLocation, buckets };
+  return { totalRevenue, totalCount, totalClients, avgValue, byType, byLocation, buckets };
 }
 
 function buildBuckets(
