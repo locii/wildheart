@@ -103,41 +103,56 @@ export function AppointmentImportButton({
     if (!preview) return;
     setImportProgress({ current: 0, total: preview.toImport.length });
     setStep("importing");
+    setError(null);
 
-    const res = await fetch("/api/appointments/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv, confirm: true, mappings }),
-    });
+    try {
+      const res = await fetch("/api/appointments/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv, confirm: true, mappings }),
+      });
 
-    if (!res.body) {
-      setStep("done");
-      return;
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop()!;
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const data = JSON.parse(line);
-          if (data.done) {
-            setResult({ imported: data.imported, skipped: data.skipped });
-            router.refresh();
-            setStep("done");
-          } else if (data.progress !== undefined) {
-            setImportProgress({ current: data.progress, total: data.total });
-          }
-        } catch {}
+      if (!res.body) {
+        setStep("done");
+        return;
       }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let gotDone = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop()!;
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+            if (data.done) {
+              gotDone = true;
+              setResult({ imported: data.imported, skipped: data.skipped });
+              router.refresh();
+              setStep("done");
+            } else if (data.progress !== undefined) {
+              setImportProgress({ current: data.progress, total: data.total });
+            }
+          } catch {}
+        }
+      }
+
+      if (!gotDone) {
+        const current = importProgress?.current ?? 0;
+        const total = importProgress?.total ?? preview.toImport.length;
+        setError(`Import interrupted at ${current} of ${total}. Re-upload the CSV to continue — already-imported records will be skipped automatically.`);
+        setStep("upload");
+      }
+    } catch (err) {
+      setError(`Import failed: ${String(err)}. Re-upload the CSV to retry.`);
+      setStep("upload");
     }
   }
 
