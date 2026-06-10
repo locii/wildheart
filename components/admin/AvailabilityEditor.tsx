@@ -174,7 +174,7 @@ function LocationAvailability({ location }: { location: Pick<Location, "id" | "n
                   >
                     <span
                       className={`w-10 h-6 rounded-full flex items-center transition-colors shrink-0 ${
-                        rule.is_active ? "bg-gray-900" : "bg-border"
+                        rule.is_active ? "bg-white" : "bg-border"
                       }`}
                     >
                       <span
@@ -185,7 +185,7 @@ function LocationAvailability({ location }: { location: Pick<Location, "id" | "n
                     </span>
                     <span
                       className={`text-sm font-medium w-24 ${
-                        rule.is_active ? "text-gray-900" : "text-gray-400"
+                        rule.is_active ? "text-orange" : "text-gray-400"
                       }`}
                     >
                       {day.label}
