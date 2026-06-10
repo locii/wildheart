@@ -32,11 +32,9 @@ export async function POST(req: NextRequest) {
   const locations = (locData ?? []) as Location[];
   const types     = (typeData ?? []) as AppointmentType[];
 
-  const emailList   = [...new Set(rows.map(r => r.email.toLowerCase()))];
-  const startAtList = [...new Set(rows.map(r => r.startAt))];
+  const emailList = [...new Set(rows.map(r => r.email.toLowerCase()))];
 
-  // Chunk both queries — large CSVs exceed PostgREST's URL limit for .in() clauses
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Clients: chunk to stay within PostgREST URL limits
   const clientRowsAll: ClientRow[] = [];
   for (let i = 0; i < emailList.length; i += 500) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,20 +43,25 @@ export async function POST(req: NextRequest) {
     (data ?? []).forEach(c => clientRowsAll.push(c));
   }
 
+  // Existing appointments: use a date range covering the whole CSV — much more reliable
+  // than .in("start_at", [...]) which can fail silently on large lists or timestamp format mismatches
   type ExistingAppt = { client_id: string; location_id: string; start_at: string };
   const existingApptAll: ExistingAppt[] = [];
-  for (let i = 0; i < startAtList.length; i += 500) {
+  if (rows.length > 0) {
+    const minStart = rows.reduce((m, r) => r.startAt < m ? r.startAt : m, rows[0].startAt);
+    const maxStart = rows.reduce((m, r) => r.startAt > m ? r.startAt : m, rows[0].startAt);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase.from("appointments") as any)
       .select("client_id, location_id, start_at")
-      .in("start_at", startAtList.slice(i, i + 500)) as { data: ExistingAppt[] | null };
+      .gte("start_at", minStart)
+      .lte("start_at", maxStart) as { data: ExistingAppt[] | null };
     (data ?? []).forEach(a => existingApptAll.push(a));
   }
 
   const clientIdByEmail = new Map(
     clientRowsAll.map(c => [c.email.toLowerCase(), c.id]),
   );
-  // Deduplicate by client+time AND by location+time (guards against the no_overlap exclusion constraint)
+  // Deduplicate by client+time AND by location+time (guards the no_overlap exclusion constraint)
   const existingByClientTime = new Set(
     existingApptAll.map(a => `${a.client_id}::${a.start_at}`),
   );
@@ -260,7 +263,7 @@ export async function POST(req: NextRequest) {
         importErrors.push(`Unexpected error: ${String(err)}`);
       }
 
-      emit({ done: true, imported, skipped: skippedCount, errors: importErrors });
+      emit({ done: true, imported, skipped: skippedCount, attempted: total, errors: importErrors });
       controller.close();
     },
   });
