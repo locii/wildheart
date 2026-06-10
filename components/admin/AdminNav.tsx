@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { WildhartLogo } from "@/components/brand/Logo";
 
 const navItems = [
   { href: "/admin/dashboard", label: "Today", icon: LayoutDashboard },
@@ -44,8 +45,8 @@ export function AdminNav() {
     <>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-56 border-r bg-card h-screen sticky top-0 shrink-0">
-        <div className="px-4 py-5 border-b">
-          <span className="font-semibold text-base">Wildheart</span>
+        <div className="px-4 py-4 border-b">
+          <WildhartLogo />
         </div>
         <nav className="flex-1 px-2 py-3 space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => (
@@ -56,7 +57,7 @@ export function AdminNav() {
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 pathname.startsWith(href)
                   ? "bg-accent text-accent-foreground"
-                  : "text-gray-500 hover:bg-muted/50 hover:text-gray-900"
+                  : "text-gray-500 hover:bg-black/10 hover:text-white"
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
