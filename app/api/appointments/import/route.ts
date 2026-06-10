@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { parseSquarespaceAppointmentCSV } from "@/lib/import-appointments";
-import type { Location, AppointmentType, Client } from "@/lib/supabase/types";
+import type { Location, AppointmentType } from "@/lib/supabase/types";
+
+// Allow up to 5 minutes for large imports on Vercel Pro+
+export const maxDuration = 300;
 
 type Mappings = {
   types: Record<string, string | null>;      // csvName → typeId | null (skip)
   locations: Record<string, string | null>;  // csvSlug → locationId | null (skip)
 };
+
+type ClientRow = { id: string; email: string; last_appointment_at: string | null };
+
+const CHUNK = 200;
 
 export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
@@ -26,25 +33,24 @@ export async function POST(req: NextRequest) {
   const types     = (typeData ?? []) as AppointmentType[];
 
   // Bulk duplicate detection — check per-client, not just per-time
-  const emailList  = [...new Set(rows.map(r => r.email.toLowerCase()))];
+  const emailList   = [...new Set(rows.map(r => r.email.toLowerCase()))];
   const startAtList = [...new Set(rows.map(r => r.startAt))];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [{ data: clientRows }, { data: existingApptRows }] = await Promise.all([
     (supabase.from("clients") as any).select("id, email").in("email", emailList),
     (supabase.from("appointments") as any).select("client_id, start_at").in("start_at", startAtList),
-  ]) as [{ data: { id: string; email: string }[] | null }, { data: { client_id: string; start_at: string }[] | null }];
+  ]) as [{ data: ClientRow[] | null }, { data: { client_id: string; start_at: string }[] | null }];
 
   const clientIdByEmail = new Map(
     (clientRows ?? []).map(c => [c.email.toLowerCase(), c.id]),
   );
-  // Key format: "clientId::startAt"
+  // Key: "clientId::startAt"
   const existingSet = new Set(
     (existingApptRows ?? []).map(a => `${a.client_id}::${a.start_at}`),
   );
 
   const previewData = rows.map((row) => {
-    // Resolve location: direct match → mapping → unknown
     let location = locations.find((l) => l.slug === row.locationSlug);
     if (!location) {
       const mapped = mappings.locations[row.locationSlug];
@@ -52,7 +58,6 @@ export async function POST(req: NextRequest) {
     }
     const locationSkipped = !location && mappings.locations[row.locationSlug] === null;
 
-    // Resolve type: case-insensitive match → mapping → unknown
     let type = types.find((t) => t.name.toLowerCase() === row.typeName.toLowerCase());
     if (!type) {
       const mapped = mappings.types[row.typeName];
@@ -65,7 +70,6 @@ export async function POST(req: NextRequest) {
     if (!type && !typeSkipped)         issues.push(`Unknown type "${row.typeName}"`);
 
     const intentionallySkipped = locationSkipped || typeSkipped;
-
     const clientId = clientIdByEmail.get(row.email.toLowerCase());
     const alreadyExists = !!clientId && existingSet.has(`${clientId}::${row.startAt}`);
 
@@ -105,11 +109,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Stream progress back to client as NDJSON
+  // ─── Stream bulk import ───────────────────────────────────────────────────
   const encoder = new TextEncoder();
   let imported = 0;
   const importErrors: string[] = [...parseErrors];
   const skippedCount = skipped.length;
+  const total = toImport.length;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -118,69 +123,108 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        for (let idx = 0; idx < toImport.length; idx++) {
-          const { row, locationId, typeId } = toImport[idx];
-
-          let client: Client | null = null;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: existingClient } = await (supabase.from("clients") as any)
-            .select("*")
-            .ilike("email", row.email)
-            .maybeSingle();
-
-          if (existingClient) {
-            client = existingClient as Client;
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data: newClient, error: clientErr } = await (supabase.from("clients") as any)
-              .insert({
-                first_name: row.firstName,
-                last_name:  row.lastName,
-                phone:      row.phone,
-                email:      row.email,
-                imported_from: "squarespace",
-                last_appointment_at: row.startAt,
-              })
-              .select()
-              .single();
-
-            if (clientErr) {
-              importErrors.push(`Failed to create client ${row.email}: ${clientErr.message}`);
-              emit({ progress: idx + 1, total: toImport.length });
-              continue;
-            }
-            client = newClient as Client;
+        // ── Phase 1: resolve all clients ──────────────────────────────────
+        // Compute the latest non-cancelled startAt and a representative row per email
+        const maxStartAtByEmail = new Map<string, string>();
+        const repRowByEmail = new Map<string, (typeof toImport)[0]["row"]>();
+        for (const { row } of toImport) {
+          const email = row.email.toLowerCase();
+          if (!repRowByEmail.has(email)) repRowByEmail.set(email, row);
+          if (!row.cancelledAt) {
+            const cur = maxStartAtByEmail.get(email);
+            if (!cur || row.startAt > cur) maxStartAtByEmail.set(email, row.startAt);
           }
+        }
 
+        const allEmails = [...repRowByEmail.keys()];
+
+        // Fetch existing clients in bulk (chunk to respect Supabase IN limits)
+        const clientMap = new Map<string, ClientRow>();
+        for (let i = 0; i < allEmails.length; i += 500) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { error: apptErr } = await (supabase.from("appointments") as any).insert({
-            client_id:    client!.id,
-            location_id:  locationId,
-            type_id:      typeId,
-            start_at:     row.startAt,
-            end_at:       row.endAt,
-            timezone:     row.timezone,
-            paid:         row.paid,
-            amount_paid:  row.amountPaid,
-            scheduled_by: row.scheduledBy,
-            source:       "admin",
-            cancelled_at: row.cancelledAt,
+          const { data } = await (supabase.from("clients") as any)
+            .select("id, email, last_appointment_at")
+            .in("email", allEmails.slice(i, i + 500)) as { data: ClientRow[] | null };
+          (data ?? []).forEach(c => clientMap.set(c.email.toLowerCase(), c));
+        }
+
+        // Bulk insert missing clients in chunks
+        const missingEmails = allEmails.filter(e => !clientMap.has(e));
+        for (let i = 0; i < missingEmails.length; i += CHUNK) {
+          const batch = missingEmails.slice(i, i + CHUNK).map(email => {
+            const row = repRowByEmail.get(email)!;
+            return {
+              first_name: row.firstName,
+              last_name:  row.lastName,
+              phone:      row.phone,
+              email,
+              imported_from: "squarespace",
+              last_appointment_at: maxStartAtByEmail.get(email) ?? null,
+            };
           });
-
-          if (apptErr) {
-            importErrors.push(`Failed to import ${row.email} at ${row.startAt}: ${apptErr.message}`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: inserted, error: clientErr } = await (supabase.from("clients") as any)
+            .insert(batch).select("id, email, last_appointment_at") as { data: ClientRow[] | null; error: { message: string } | null };
+          if (clientErr) {
+            importErrors.push(`Failed to insert clients: ${clientErr.message}`);
           } else {
-            imported++;
-            if (!row.cancelledAt) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              await (supabase.from("clients") as any)
-                .update({ last_appointment_at: row.startAt })
-                .eq("id", client!.id)
-                .lt("last_appointment_at", row.startAt);
+            (inserted ?? []).forEach(c => clientMap.set(c.email.toLowerCase(), c));
+          }
+        }
+
+        // ── Phase 2: bulk insert appointments in chunks ───────────────────
+        for (let i = 0; i < toImport.length; i += CHUNK) {
+          const chunk = toImport.slice(i, i + CHUNK);
+          const appts = chunk
+            .map(({ row, locationId, typeId }) => {
+              const client = clientMap.get(row.email.toLowerCase());
+              if (!client) return null;
+              return {
+                client_id:    client.id,
+                location_id:  locationId,
+                type_id:      typeId,
+                start_at:     row.startAt,
+                end_at:       row.endAt,
+                timezone:     row.timezone,
+                paid:         row.paid,
+                amount_paid:  row.amountPaid,
+                scheduled_by: row.scheduledBy,
+                source:       "admin",
+                cancelled_at: row.cancelledAt,
+              };
+            })
+            .filter(Boolean);
+
+          if (appts.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: insertedAppts, error: apptErr } = await (supabase.from("appointments") as any)
+              .insert(appts).select("id") as { data: { id: string }[] | null; error: { message: string } | null };
+            if (apptErr) {
+              importErrors.push(`Batch ${Math.floor(i / CHUNK) + 1}: ${apptErr.message}`);
+            } else {
+              imported += (insertedAppts ?? []).length;
             }
           }
 
-          emit({ progress: idx + 1, total: toImport.length });
+          emit({ progress: Math.min(i + CHUNK, total), total });
+        }
+
+        // ── Phase 3: update last_appointment_at for existing clients ──────
+        const clientUpdates: Promise<unknown>[] = [];
+        for (const [email, latestAt] of maxStartAtByEmail) {
+          const client = clientMap.get(email);
+          if (!client || !latestAt) continue;
+          if (!client.last_appointment_at || client.last_appointment_at < latestAt) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            clientUpdates.push(
+              (supabase.from("clients") as any)
+                .update({ last_appointment_at: latestAt })
+                .eq("id", client.id),
+            );
+          }
+        }
+        for (let i = 0; i < clientUpdates.length; i += 50) {
+          await Promise.all(clientUpdates.slice(i, i + 50));
         }
       } catch (err) {
         importErrors.push(`Unexpected error: ${String(err)}`);
