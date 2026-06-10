@@ -49,7 +49,6 @@ interface CalEvent {
   kind: "appointment" | "block";
   locationSlug?: string;
   typeName?: string;
-  paid?: boolean;
   price?: number;
   overrideId?: string;
   locationId?: string;
@@ -187,7 +186,6 @@ export function ScheduleCalendar({
         kind: "appointment" as const,
         locationSlug: a.location.slug,
         typeName: a.type.name,
-        paid: a.paid,
         price: a.type.price,
       }));
 
@@ -683,7 +681,7 @@ function TimeGrid({
                             <div className="text-[9px] text-white/80 truncate">{ev.typeName}</div>
                           )}
                           {ev.height > SLOT_H * 3 && (ev.price ?? 0) > 0 && (
-                            <div className="text-[9px] text-white/70">{ev.paid ? "✓ paid" : `$${ev.price}`}</div>
+                            <div className="text-[9px] text-white/70">${ev.price}</div>
                           )}
                         </div>
                       )}

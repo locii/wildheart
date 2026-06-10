@@ -12,7 +12,6 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
@@ -47,7 +46,6 @@ export function AppointmentSheet({
   const [rescheduleEnd, setRescheduleEnd] = useState("");
   const [savingReschedule, setSavingReschedule] = useState(false);
   const [rescheduleError, setRescheduleError] = useState("");
-  const [togglingPaid, setTogglingPaid] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
@@ -92,20 +90,6 @@ export function AppointmentSheet({
     if (!res.ok) { setRescheduleError(data.error ?? "Could not reschedule."); return; }
     setAppt(data.appointment);
     setRescheduling(false);
-    onChanged();
-  }
-
-  async function togglePaid() {
-    if (!appt) return;
-    setTogglingPaid(true);
-    const res = await fetch(`/api/appointments/${appt.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paid: !appt.paid }),
-    });
-    const { appointment } = await res.json();
-    setAppt(appointment);
-    setTogglingPaid(false);
     onChanged();
   }
 
@@ -226,10 +210,6 @@ export function AppointmentSheet({
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-3.5 w-3.5 shrink-0" />
                         ${appt.type.price}
-                        {appt.paid
-                          ? <Badge variant="outline" className="text-[10px] border-green-600/40 text-green-400 ml-1">Paid</Badge>
-                          : <Badge variant="outline" className="text-[10px] border-amber-600/40 text-amber-400 ml-1">Unpaid</Badge>
-                        }
                       </div>
                     )}
                   </div>
@@ -269,11 +249,6 @@ export function AppointmentSheet({
               {!isCancelled && (
                 <div className="px-5 py-4 border-t space-y-2">
                   <div className="flex gap-2">
-                    {appt.type.price > 0 && (
-                      <Button variant="outline" size="sm" className="flex-1" onClick={togglePaid} disabled={togglingPaid}>
-                        {togglingPaid ? "…" : appt.paid ? "Mark unpaid" : "Mark paid"}
-                      </Button>
-                    )}
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => setNotifyOpen(true)}>
                       <Send className="h-3.5 w-3.5 mr-1" /> Notify
                     </Button>

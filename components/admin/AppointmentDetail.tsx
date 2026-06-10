@@ -10,7 +10,6 @@ import {
   User, Mail, Phone, AlertCircle, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
@@ -32,7 +31,6 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
   const [appt, setAppt] = useState(initial);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [togglingPaid, setTogglingPaid] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifyType, setNotifyType] = useState<AnyNotifyType>("booking");
   const [notifyChannels, setNotifyChannels] = useState({ email: true, sms: false });
@@ -43,18 +41,6 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
   const end = toZonedTime(new Date(appt.end_at), appt.timezone);
   const isCancelled = !!appt.cancelled_at;
   const hasPhone = !!appt.client.phone;
-
-  async function togglePaid() {
-    setTogglingPaid(true);
-    const res = await fetch(`/api/appointments/${appt.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paid: !appt.paid }),
-    });
-    const { appointment } = await res.json();
-    setAppt(appointment);
-    setTogglingPaid(false);
-  }
 
   async function cancel() {
     setCancelling(true);
@@ -121,10 +107,6 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
               {appt.type.price > 0 && (
                 <span className="flex items-center gap-1.5">
                   <DollarSign className="h-3.5 w-3.5" />${appt.type.price}
-                  {appt.paid
-                    ? <Badge variant="outline" className="text-[10px] border-green-300 text-green-700 ml-1">Paid</Badge>
-                    : <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 ml-1">Unpaid</Badge>
-                  }
                 </span>
               )}
             </div>
@@ -164,11 +146,6 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
         {!isCancelled && (
           <div className="fixed bottom-[72px] left-0 right-0 px-4 pb-2 md:static md:bottom-auto md:pb-0 bg-muted/50 md:bg-transparent pt-2 md:pt-0 border-t md:border-0">
             <div className="max-w-lg mx-auto flex gap-2">
-              {appt.type.price > 0 && (
-                <Button variant="outline" className="flex-1" onClick={togglePaid} disabled={togglingPaid}>
-                  {togglingPaid ? "…" : appt.paid ? "Mark unpaid" : "Mark as paid"}
-                </Button>
-              )}
               <Button variant="outline" className="flex-1" onClick={() => setNotifyOpen(true)}>
                 <Send className="h-3.5 w-3.5 mr-1" /> Send notification
               </Button>

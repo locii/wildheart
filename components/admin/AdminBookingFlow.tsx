@@ -133,7 +133,7 @@ export function AdminBookingFlow({
         )}
         {step === "confirm" && location && type && slot && (
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+            <div className="bg-muted/50 border rounded-xl p-4 space-y-2 text-sm">
               <Row label="Client" value={isNewClient ? `${newClient.first_name} ${newClient.last_name}` : `${client!.first_name} ${client!.last_name}`} />
               <Row label="Location" value={location.name} />
               <Row label="Service" value={type.name} />
@@ -389,8 +389,8 @@ function AdminTimeStep({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-gray-400 shrink-0">{label}</span>
-      <span className="font-medium text-right">{value}</span>
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="font-medium text-right text-foreground">{value}</span>
     </div>
   );
 }

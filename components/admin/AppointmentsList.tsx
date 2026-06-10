@@ -76,8 +76,7 @@ export function AppointmentsList({ locations }: { locations: Location[] }) {
   function exportCsv() {
     const headers = [
       "Start Time", "End Time", "Timezone", "First Name", "Last Name",
-      "Phone", "Email", "Type", "Calendar", "Appointment Price",
-      "Paid?", "Amount Paid Online", "Appointment ID",
+      "Phone", "Email", "Type", "Calendar", "Appointment Price", "Appointment ID",
     ];
     const rows = filtered.map((a) => {
       const tz = a.timezone;
@@ -94,8 +93,6 @@ export function AppointmentsList({ locations }: { locations: Location[] }) {
         a.type.name,
         a.location.name,
         a.type.price.toFixed(2),
-        a.paid ? "yes" : "no",
-        a.amount_paid.toFixed(2),
         a.id,
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
     });
@@ -225,13 +222,9 @@ function AppointmentCard({ appointment: a }: { appointment: AppointmentWithRelat
         <span className="flex items-center gap-0.5 text-xs text-gray-400">
           <MapPin className="h-3 w-3" />{a.location.name}
         </span>
-        {isCancelled ? (
+        {isCancelled && (
           <Badge variant="outline" className="text-[10px] border-red-200 text-red-500">Cancelled</Badge>
-        ) : a.paid ? (
-          <Badge variant="outline" className="text-[10px] border-green-300 text-green-700">Paid</Badge>
-        ) : a.type.price > 0 ? (
-          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">Unpaid</Badge>
-        ) : null}
+        )}
       </div>
     </Link>
   );

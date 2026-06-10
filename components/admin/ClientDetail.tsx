@@ -78,6 +78,12 @@ export function ClientDetail({ client, appointments, intakeForm }: Props) {
               Last appointment {formatDistanceToNow(new Date(client.last_appointment_at), { addSuffix: true })}
             </p>
           )}
+          {past.length > 0 && (
+            <p className="flex items-center gap-2 text-sm text-gray-500">
+              <CheckCircle className="h-3.5 w-3.5 text-gray-400" />
+              {past.length} session{past.length !== 1 ? "s" : ""}
+            </p>
+          )}
           {client.imported_from && (
             <Badge variant="outline" className="text-xs mt-1">Imported from {client.imported_from}</Badge>
           )}
@@ -167,14 +173,6 @@ function AppointmentSection({
                   </span>
                 </div>
               </div>
-              {!muted && appt.type.price > 0 && (
-                <Badge
-                  variant="outline"
-                  className={`text-[10px] ml-2 shrink-0 ${appt.paid ? "border-green-300 text-green-700" : "border-amber-300 text-amber-700"}`}
-                >
-                  {appt.paid ? "Paid" : "Unpaid"}
-                </Badge>
-              )}
             </Link>
           );
         })}
