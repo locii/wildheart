@@ -92,8 +92,8 @@ function DaySection({
         </span>
         <span className="text-xs text-gray-400">{dateLabel}</span>
         {appointments.length > 0 && (
-          <span className="ml-auto text-[10px] font-medium bg-slate-700 rounded-full px-2 py-0.5 mr-2">
-            {appointments.length}
+          <span className="ml-auto text-[10px] font-medium bg-zinc-900 rounded-full px-2 py-0.5 mr-2">
+            {appointments.length} Appointments
           </span>
         )}
       </div>
@@ -120,7 +120,7 @@ function AgendaRow({ appointment: a }: { appointment: AppointmentWithRelations }
   return (
     <Link
       href={`/admin/appointments/${a.id}`}
-      className="flex items-center gap-3 bg-card border rounded-xl px-4 py-3 active:scale-[0.99] transition-transform"
+      className="flex items-center gap-3 bg-card border rounded-xl px-4 py-3 hover:bg-muted/50 hover:border-border/80 active:scale-[0.99] transition-all"
     >
       {/* Time column */}
       <div className="text-xs tabular-nums text-gray-400 w-16 shrink-0 text-right">
