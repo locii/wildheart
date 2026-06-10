@@ -4,7 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Single @theme block — no indirection, no conflict */
+/*
+  Palette
+  Charcoal Blue  #264653  → background / sidebar family
+  Verdigris      #2a9d8f  → primary / ring / chart-1
+  Jasmine        #e9c46a  → chart-2 / warm accent text
+  Sandy Brown    #f4a261  → chart-3
+  Burnt Peach    #e76f51  → chart-4 / destructive
+*/
+
 @theme inline {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -17,61 +25,75 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Colors — direct values, no var() indirection */
-  --color-background:           oklch(0.20 0 0);
-  --color-foreground:           oklch(0.97 0 0);
-  --color-card:                 oklch(0.27 0 0);
-  --color-card-foreground:      oklch(0.97 0 0);
-  --color-popover:              oklch(0.27 0 0);
-  --color-popover-foreground:   oklch(0.97 0 0);
-  --color-primary:              #084C61;
-  --color-primary-foreground:   oklch(0.985 0 0);
-  --color-secondary:            oklch(0.32 0 0);
-  --color-secondary-foreground: oklch(0.97 0 0);
-  --color-muted:                oklch(0.32 0 0);
-  --color-muted-foreground:     oklch(0.72 0 0);
-  --color-accent:               oklch(0.30 0.05 150);
-  --color-accent-foreground:    oklch(0.88 0.08 150);
-  --color-destructive:          oklch(0.577 0.245 27.325);
-  --color-border:               oklch(0.36 0 0);
-  --color-input:                oklch(0.32 0 0);
-  --color-ring:                 oklch(0.55 0.13 150);
-  --color-chart-1:              oklch(0.55 0.13 150);
-  --color-chart-2:              oklch(0.65 0.10 150);
-  --color-chart-3:              oklch(0.45 0.10 150);
-  --color-chart-4:              oklch(0.70 0.07 150);
-  --color-chart-5:              oklch(0.35 0.08 150);
-  --color-sidebar:              oklch(0.16 0 0);
-  --color-sidebar-foreground:   oklch(0.97 0 0);
-  --color-sidebar-primary:      oklch(0.55 0.13 150);
-  --color-sidebar-primary-foreground: oklch(0.985 0 0);
-  --color-sidebar-accent:       oklch(0.30 0.05 150);
-  --color-sidebar-accent-foreground: oklch(0.88 0.08 150);
-  --color-sidebar-border:       oklch(0.28 0 0);
-  --color-sidebar-ring:         oklch(0.55 0.13 150);
+  /* ── Backgrounds (dark charcoal blue family) ─────────────────── */
+  --color-background:           oklch(0.17 0.025 215);
+  --color-foreground:           oklch(0.96 0.005 215);
+  --color-card:                 oklch(0.23 0.028 215);
+  --color-card-foreground:      oklch(0.96 0.005 215);
+  --color-popover:              oklch(0.23 0.028 215);
+  --color-popover-foreground:   oklch(0.96 0.005 215);
+
+  /* ── Primary — Verdigris #2a9d8f ─────────────────────────────── */
+  --color-primary:              oklch(0.62 0.085 185);
+  --color-primary-foreground:   oklch(0.98 0 0);
+
+  /* ── Secondary / muted ───────────────────────────────────────── */
+  --color-secondary:            oklch(0.28 0.025 215);
+  --color-secondary-foreground: oklch(0.96 0.005 215);
+  --color-muted:                oklch(0.28 0.025 215);
+  --color-muted-foreground:     oklch(0.65 0.015 215);
+
+  /* ── Accent — warm sandy tint ────────────────────────────────── */
+  --color-accent:               oklch(0.30 0.04 52);
+  --color-accent-foreground:    oklch(0.83 0.11 78);
+
+  /* ── Destructive — Burnt Peach #e76f51 ───────────────────────── */
+  --color-destructive:          oklch(0.65 0.15 33);
+
+  /* ── Borders / inputs ────────────────────────────────────────── */
+  --color-border:               oklch(0.33 0.025 215);
+  --color-input:                oklch(0.28 0.025 215);
+  --color-ring:                 oklch(0.62 0.085 185);
+
+  /* ── Charts — full palette ───────────────────────────────────── */
+  --color-chart-1:              oklch(0.62 0.085 185);   /* Verdigris   */
+  --color-chart-2:              oklch(0.83 0.11  78);    /* Jasmine     */
+  --color-chart-3:              oklch(0.77 0.12  52);    /* Sandy Brown */
+  --color-chart-4:              oklch(0.65 0.15  33);    /* Burnt Peach */
+  --color-chart-5:              oklch(0.42 0.04 215);    /* Charcoal    */
+
+  /* ── Sidebar ─────────────────────────────────────────────────── */
+  --color-sidebar:              oklch(0.13 0.022 215);
+  --color-sidebar-foreground:   oklch(0.96 0.005 215);
+  --color-sidebar-primary:      oklch(0.62 0.085 185);
+  --color-sidebar-primary-foreground: oklch(0.98 0 0);
+  --color-sidebar-accent:       oklch(0.28 0.03 215);
+  --color-sidebar-accent-foreground:  oklch(0.83 0.11 78);
+  --color-sidebar-border:       oklch(0.28 0.022 215);
+  --color-sidebar-ring:         oklch(0.62 0.085 185);
 }
 
-/* CSS custom properties for any shadcn internals that reference --primary etc. */
+/* CSS custom properties for shadcn internals */
 :root {
   --radius: 0.625rem;
-  --background:     oklch(0.20 0 0);
-  --foreground:     oklch(0.97 0 0);
-  --card:           oklch(0.27 0 0);
-  --card-foreground: oklch(0.97 0 0);
-  --primary:        oklch(0.55 0.13 150);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary:      oklch(0.32 0 0);
-  --secondary-foreground: oklch(0.97 0 0);
-  --muted:          oklch(0.32 0 0);
-  --muted-foreground: oklch(0.72 0 0);
-  --accent:         oklch(0.30 0.05 150);
-  --accent-foreground: oklch(0.88 0.08 150);
-  --destructive:    oklch(0.577 0.245 27.325);
-  --border:         oklch(0.36 0 0);
-  --input:          oklch(0.32 0 0);
-  --ring:           oklch(0.55 0.13 150);
-  --popover:        oklch(0.27 0 0);
-  --popover-foreground: oklch(0.97 0 0);
+  --background:           oklch(0.17 0.025 215);
+  --foreground:           oklch(0.96 0.005 215);
+  --card:                 oklch(0.23 0.028 215);
+  --card-foreground:      oklch(0.96 0.005 215);
+  --popover:              oklch(0.23 0.028 215);
+  --popover-foreground:   oklch(0.96 0.005 215);
+  --primary:              oklch(0.62 0.085 185);
+  --primary-foreground:   oklch(0.98 0 0);
+  --secondary:            oklch(0.28 0.025 215);
+  --secondary-foreground: oklch(0.96 0.005 215);
+  --muted:                oklch(0.28 0.025 215);
+  --muted-foreground:     oklch(0.65 0.015 215);
+  --accent:               oklch(0.30 0.04 52);
+  --accent-foreground:    oklch(0.83 0.11 78);
+  --destructive:          oklch(0.65 0.15 33);
+  --border:               oklch(0.33 0.025 215);
+  --input:                oklch(0.28 0.025 215);
+  --ring:                 oklch(0.62 0.085 185);
 }
 
 @layer base {
@@ -85,4 +107,3 @@
     @apply font-sans;
   }
 }
-

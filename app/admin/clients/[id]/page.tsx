@@ -1,19 +1,35 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ClientDetail } from "@/components/admin/ClientDetail";
+import { toClientSlug } from "@/lib/client-url";
 import type { AppointmentWithRelations, Client, IntakeForm } from "@/lib/supabase/types";
 
 type Props = { params: Promise<{ id: string }> };
 
-// Accepts plain UUID or "firstname-lastname-shortid" slug format.
-// shortId is the first 8 hex chars of the UUID (no dashes).
-async function resolveClientId(param: string, supabase: ReturnType<typeof createServiceClient>): Promise<string | null> {
+// Accepts a plain UUID or a name slug like "john-smith" / "john-smith-2"
+async function resolveClientId(
+  param: string,
+  supabase: ReturnType<typeof createServiceClient>
+): Promise<string | null> {
+  // Plain UUID — use directly
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)) return param;
-  const shortId = param.split("-").pop() ?? "";
-  if (!/^[0-9a-f]{8}$/i.test(shortId)) return param;
+
+  // Slug: strip optional -N suffix to get base + 1-based index
+  const indexMatch = param.match(/-(\d+)$/);
+  const n = indexMatch ? parseInt(indexMatch[1]) : 1;
+  const base = indexMatch ? param.slice(0, -indexMatch[0].length) : param;
+
+  // Fetch all client names (lightweight) and match by generated slug
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase.from("clients") as any).select("id").ilike("id", `${shortId}%`).maybeSingle();
-  return data?.id ?? null;
+  const { data } = await (supabase.from("clients") as any)
+    .select("id, first_name, last_name")
+    .order("created_at", { ascending: true });
+
+  const matches = (data ?? []).filter(
+    (c: { first_name: string; last_name: string }) =>
+      toClientSlug(c.first_name, c.last_name) === base
+  );
+  return (matches[n - 1] as { id: string } | undefined)?.id ?? null;
 }
 
 export default async function ClientDetailPage({ params }: Props) {

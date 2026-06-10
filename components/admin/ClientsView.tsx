@@ -92,7 +92,7 @@ export function ClientsView({ initialClients, initialTotal }: Props) {
           {clients.map((client) => (
             <Link
               key={client.id}
-              href={clientUrl(client)}
+              href={clientUrl(client, clients)}
               className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/50 transition-colors"
             >
               <div className="min-w-0">
