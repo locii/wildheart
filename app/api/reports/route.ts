@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { fetchReport, type ReportPeriod } from "@/lib/reports";
 import {
+  format,
   startOfWeek, endOfWeek,
   startOfMonth, endOfMonth,
   startOfYear, endOfYear,
@@ -27,9 +28,11 @@ export async function GET(req: NextRequest) {
   const period: ReportPeriod = VALID_PERIODS.has(rawPeriod as ReportPeriod)
     ? (rawPeriod as ReportPeriod)
     : "month";
-  const anchor = searchParams.get("anchor") ?? new Date().toISOString();
+  const anchor = searchParams.get("anchor") ?? format(new Date(), "yyyy-MM-dd");
   const locationId = searchParams.get("locationId") ?? undefined;
-  const d = new Date(anchor);
+  // Parse date-only strings (yyyy-MM-dd) as UTC noon to avoid DST/timezone edge cases.
+  // ISO strings with "T" are parsed as-is.
+  const d = anchor.includes("T") ? new Date(anchor) : new Date(anchor + "T12:00:00.000Z");
 
   let from: Date;
   let to: Date;

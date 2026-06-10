@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ScheduleCalendar } from "@/components/admin/ScheduleCalendar";
 import { AppointmentsList } from "@/components/admin/AppointmentsList";
@@ -26,7 +27,7 @@ export default async function AppointmentsPage({
   const types = (typesData ?? []) as AppointmentType[];
 
   return (
-    <div className="px-4 py-5 max-w-5xl mx-auto">
+    <div className="px-8 py-5 max-w-5xl mx-auto">
       {showList ? (
         <>
           <div className="flex items-center justify-between mb-5">
@@ -49,22 +50,24 @@ export default async function AppointmentsPage({
           <div className="flex items-center justify-between mb-5">
             <h1 className="text-xl font-semibold">Schedule</h1>
           </div>
-          <ScheduleCalendar
-            locations={locations}
-            types={types}
-            actions={
-              <div className="flex items-center gap-2">
-                <ViewToggle showList={showList} />
-                <AppointmentImportButton locations={locations} types={types} />
-                <a
-                  href="/admin/appointments/new"
-                  className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-lg"
-                >
-                  + New
-                </a>
-              </div>
-            }
-          />
+          <Suspense>
+            <ScheduleCalendar
+              locations={locations}
+              types={types}
+              actions={
+                <div className="flex items-center gap-2">
+                  <ViewToggle showList={showList} />
+                  <AppointmentImportButton locations={locations} types={types} />
+                  <a
+                    href="/admin/appointments/new"
+                    className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-lg"
+                  >
+                    + New
+                  </a>
+                </div>
+              }
+            />
+          </Suspense>
         </>
       )}
     </div>

@@ -94,7 +94,7 @@ export function parseSquarespaceAppointmentCSV(csv: string): AppointmentParseRes
 
     const canceledFlag = idxCanceled !== -1 ? c[idxCanceled]?.trim().toLowerCase() : "";
     const dateCanceled = idxDateCanceled !== -1 ? c[idxDateCanceled]?.trim() : "";
-    const cancelledAt = (canceledFlag === "yes" || dateCanceled)
+    const cancelledAt = canceledFlag === "yes"
       ? (dateCanceled ? new Date(dateCanceled).toISOString() : startAt)
       : null;
 

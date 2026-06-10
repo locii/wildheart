@@ -107,7 +107,7 @@ export function AppointmentsList({ locations }: { locations: Location[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       {/* Filters */}
       <div className="space-y-3">
         {/* Location tabs */}

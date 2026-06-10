@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
-  format, addDays, addMonths, startOfWeek, endOfWeek,
+  format, addDays, addMonths, parse, startOfWeek, endOfWeek,
   startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
   parseISO, isToday, startOfDay,
 } from "date-fns";
@@ -143,17 +144,33 @@ export function ScheduleCalendar({
   types: AppointmentType[];
   actions?: React.ReactNode;
 }) {
-  const [view, setView] = useState<"month" | "week" | "day">("week");
-  const [anchorDate, setAnchorDate] = useState(() => new Date());
+  const searchParams = useSearchParams();
+
+  const [view, setView] = useState<"month" | "week" | "day">(() => {
+    const v = searchParams.get("calview");
+    return (["month", "week", "day"] as const).includes(v as "month") ? (v as "month" | "week" | "day") : "week";
+  });
+  const [anchorDate, setAnchorDate] = useState(() => {
+    const d = searchParams.get("date");
+    if (d) { try { return parse(d, "yyyy-MM-dd", new Date()); } catch {} }
+    return new Date();
+  });
   const [locationFilter, setLocationFilter] = useState<"all" | string>("all");
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [editingBlock, setEditingBlock] = useState<BlockEdit | null>(null);
   const [flyoutApptId, setFlyoutApptId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
+  const [pickerYear, setPickerYear] = useState(() => anchorDate.getFullYear());
   const pickerRef = useRef<HTMLDivElement>(null);
   const pickerBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("calview", view);
+    params.set("date", format(anchorDate, "yyyy-MM-dd"));
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  }, [view, anchorDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const days = useMemo(() => {
     if (view === "day") return [anchorDate];
@@ -213,7 +230,7 @@ export function ScheduleCalendar({
           title: o.notes ? `Blocked · ${o.notes}` : "Blocked",
           start: eventStart.toISOString(),
           end: eventEnd.toISOString(),
-          color: "oklch(0.28 0 0)",
+          color: `var(--color-blocked)`,
           textColor: "oklch(0.60 0 0)",
           kind: "block" as const,
           overrideId: o.id,
@@ -928,7 +945,7 @@ function CreateDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm mx-4">
+      <DialogContent className="max-w-lg mx-4">
         <DialogHeader>
           <DialogTitle className="text-sm font-medium text-muted-foreground">{timeLabel}</DialogTitle>
         </DialogHeader>
@@ -990,7 +1007,7 @@ function EditBlockDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm mx-4">
+      <DialogContent className="max-w-lg mx-4">
         <DialogHeader>
           <DialogTitle>Edit block</DialogTitle>
         </DialogHeader>
@@ -1113,31 +1130,7 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
 
   return (
     <div className="space-y-3 pt-1">
-      <div className="space-y-1.5">
-        <Label className="text-xs">Location</Label>
-        <div className="flex gap-1.5">
-          {locations.map((l) => (
-            <button key={l.slug} onClick={() => setLocationSlug(l.slug)}
-              className={`flex-1 py-2 text-xs rounded-lg border font-medium transition-colors ${locationSlug === l.slug ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
-              {l.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">Service</Label>
-        <div className="space-y-1">
-          {types.map((t) => (
-            <button key={t.id} onClick={() => setTypeId(t.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-colors ${typeId === t.id ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:border-border"}`}>
-              {t.name} · {t.duration_minutes} min
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 mb-6">
         <Label className="text-xs">Client</Label>
         {selectedClient ? (
           <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-xs">
@@ -1179,9 +1172,33 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
         )}
       </div>
 
+      <div className="space-y-1.5 mb-6">
+        <Label className="text-xs">Location</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {locations.map((l) => (
+            <button key={l.slug} onClick={() => setLocationSlug(l.slug)}
+              className={`p-2 text-xs rounded-lg border font-medium transition-colors ${locationSlug === l.slug ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
+              {l.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Service</Label>
+        <div className="space-y-1">
+          {types.map((t) => (
+            <button key={t.id} onClick={() => setTypeId(t.id)}
+              className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-colors ${typeId === t.id ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:border-border"}`}>
+              {t.name} · {t.duration_minutes} min
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && <p className="text-xs text-red-500">{error}</p>}
       <div className="flex gap-2 pt-1">
-        <Button onClick={book} disabled={!hasClient || saving} className="flex-1" size="sm">
+        <Button onClick={book} disabled={!hasClient || saving} className="flex-1 bg-chart-1 hover:bg-chart-1/85 text-white border-transparent" size="sm">
           {saving ? "Booking…" : "Book"}
         </Button>
         <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
@@ -1198,7 +1215,7 @@ function BlockTab({ selection, locations, onCreated, onClose }: {
   onCreated: () => void;
   onClose: () => void;
 }) {
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
+  const [locationId, setLocationId] = useState<string>("all");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -1209,18 +1226,21 @@ function BlockTab({ selection, locations, onCreated, onClose }: {
 
   async function block() {
     setSaving(true);
-    await fetch("/api/availability/overrides", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        locationId, date,
-        allDay: isAllDay,
-        startTime: isAllDay ? null : startTime,
-        endTime: isAllDay ? null : endTime,
-        repeatWeekly: false,
-        notes: notes || null,
-      }),
-    });
+    const targets = locationId === "all" ? locations.map((l) => l.id) : [locationId];
+    await Promise.all(targets.map((lid) =>
+      fetch("/api/availability/overrides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: lid, date,
+          allDay: isAllDay,
+          startTime: isAllDay ? null : startTime,
+          endTime: isAllDay ? null : endTime,
+          repeatWeekly: false,
+          notes: notes || null,
+        }),
+      })
+    ));
     onCreated();
   }
 
@@ -1228,10 +1248,14 @@ function BlockTab({ selection, locations, onCreated, onClose }: {
     <div className="space-y-4 pt-1">
       <div className="space-y-1.5">
         <Label className="text-xs">Location</Label>
-        <div className="flex gap-1.5">
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => setLocationId("all")}
+            className={`py-2.5 text-xs rounded-lg border font-medium transition-colors ${locationId === "all" ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
+            All locations
+          </button>
           {locations.map((l) => (
             <button key={l.id} onClick={() => setLocationId(l.id)}
-              className={`flex-1 py-2.5 text-xs rounded-lg border font-medium transition-colors flex items-center justify-center gap-1.5 ${locationId === l.id ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
+              className={`py-2.5 text-xs rounded-lg border font-medium transition-colors flex items-center justify-center gap-1.5 ${locationId === l.id ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>
               <MapPin className="h-3 w-3" />{l.name}
             </button>
           ))}

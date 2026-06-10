@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import {
   addWeeks, addMonths, addYears,
   subWeeks, subMonths, subYears,
-  format, startOfMonth, startOfYear, startOfWeek,
+  format, parse, startOfMonth, startOfYear, startOfWeek,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 
@@ -24,9 +25,21 @@ const PERIODS: { value: ReportPeriod; label: string }[] = [
   { value: "fy", label: "Fin. Year" },
 ];
 
+function anchorFromParam(raw: string | null): Date {
+  if (!raw) return new Date();
+  try { return parse(raw, "yyyy-MM-dd", new Date()); } catch { return new Date(); }
+}
+
 export function ReportsView() {
-  const [period, setPeriod] = useState<ReportPeriod>("month");
-  const [anchor, setAnchor] = useState(() => new Date());
+  const searchParams = useSearchParams();
+
+  const [period, setPeriod] = useState<ReportPeriod>(() => {
+    const p = searchParams.get("period");
+    return (["week", "month", "year", "fy"] as ReportPeriod[]).includes(p as ReportPeriod)
+      ? (p as ReportPeriod)
+      : "month";
+  });
+  const [anchor, setAnchor] = useState<Date>(() => anchorFromParam(searchParams.get("anchor")));
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState<string>("");
@@ -34,9 +47,16 @@ export function ReportsView() {
   const [allTimeSessions, setAllTimeSessions] = useState<number | null>(null);
   const [allTimeClients, setAllTimeClients] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
+  const [pickerYear, setPickerYear] = useState(() => anchor.getFullYear());
   const pickerRef = useRef<HTMLDivElement>(null);
   const pickerBtnRef = useRef<HTMLButtonElement>(null);
+
+  function pushUrl(p: ReportPeriod, a: Date) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("period", p);
+    params.set("anchor", format(a, "yyyy-MM-dd"));
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  }
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -59,7 +79,7 @@ export function ReportsView() {
   const load = useCallback(async (p: ReportPeriod, a: Date) => {
     setLoading(true);
     const res = await fetch(
-      `/api/reports?period=${p}&anchor=${a.toISOString()}`
+      `/api/reports?period=${p}&anchor=${format(a, "yyyy-MM-dd")}`
     );
     const json = await res.json();
     setData(json.data);
@@ -71,6 +91,7 @@ export function ReportsView() {
   }, []);
 
   useEffect(() => { load(period, anchor); }, [period, anchor, load]);
+  useEffect(() => { pushUrl(period, anchor); }, [period, anchor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function navigate(dir: 1 | -1) {
     setAnchor((prev) => {
@@ -81,10 +102,11 @@ export function ReportsView() {
   }
 
   function periodLabel() {
-    if (period === "week") return `${format(new Date(from), "d MMM")} – ${format(new Date(to), "d MMM yyyy")}`;
-    if (period === "year") return format(startOfYear(anchor), "yyyy");
-    if (period === "fy") return `FY${financialYear(anchor)}`;
-    return format(startOfMonth(anchor), "MMMM yyyy");
+    const base = from ? new Date(from) : anchor;
+    if (period === "week") return from ? `${format(new Date(from), "d MMM")} – ${format(new Date(to), "d MMM yyyy")}` : "…";
+    if (period === "year") return format(startOfYear(base), "yyyy");
+    if (period === "fy") return `FY${financialYear(base)}`;
+    return format(startOfMonth(base), "MMMM yyyy");
   }
 
   function downloadCSV() {
@@ -123,7 +145,7 @@ export function ReportsView() {
           {PERIODS.map((p) => (
             <button
               key={p.value}
-              onClick={() => { setPeriod(p.value); setAnchor(new Date()); }}
+              onClick={() => { const a = new Date(); setPeriod(p.value); setAnchor(a); }}
               className={`px-4 py-2 transition-colors ${period === p.value ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50"}`}
             >
               {p.label}

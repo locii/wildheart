@@ -41,7 +41,7 @@ export function AppointmentImportButton({
   const [csv, setCsv] = useState("");
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [mappings, setMappings] = useState<Mappings>({ types: {}, locations: {} });
-  const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
@@ -134,7 +134,7 @@ export function AppointmentImportButton({
             const data = JSON.parse(line);
             if (data.done) {
               gotDone = true;
-              setResult({ imported: data.imported, skipped: data.skipped });
+              setResult({ imported: data.imported, skipped: data.skipped, errors: data.errors ?? [] });
               router.refresh();
               setStep("done");
             } else if (data.progress !== undefined) {
@@ -352,6 +352,12 @@ export function AppointmentImportButton({
               <p className="text-sm text-muted-foreground">
                 appointments imported · {result.skipped} already existed or skipped
               </p>
+              {result.errors.length > 0 && (
+                <div className="mt-3 text-left text-xs text-red-400 bg-red-950/40 border border-red-800/40 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+                  <p className="font-medium">Errors ({result.errors.length}):</p>
+                  {result.errors.map((e, i) => <p key={i}>{e}</p>)}
+                </div>
+              )}
               <Button className="mt-4" onClick={() => { reset(); setOpen(false); }}>Done</Button>
             </div>
           )}
