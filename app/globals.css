@@ -18,60 +18,60 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 
   /* Colors — direct values, no var() indirection */
-  --color-background:           oklch(0.13 0 0);
-  --color-foreground:           oklch(0.93 0 0);
-  --color-card:                 oklch(0.18 0.005 150);
-  --color-card-foreground:      oklch(0.93 0 0);
-  --color-popover:              oklch(0.18 0.005 150);
-  --color-popover-foreground:   oklch(0.93 0 0);
+  --color-background:           oklch(0.20 0 0);
+  --color-foreground:           oklch(0.97 0 0);
+  --color-card:                 oklch(0.27 0 0);
+  --color-card-foreground:      oklch(0.97 0 0);
+  --color-popover:              oklch(0.27 0 0);
+  --color-popover-foreground:   oklch(0.97 0 0);
   --color-primary:              oklch(0.55 0.13 150);
   --color-primary-foreground:   oklch(0.985 0 0);
-  --color-secondary:            oklch(0.22 0.004 150);
-  --color-secondary-foreground: oklch(0.93 0 0);
-  --color-muted:                oklch(0.22 0.004 150);
-  --color-muted-foreground:     oklch(0.58 0 0);
-  --color-accent:               oklch(0.24 0.06 150);
-  --color-accent-foreground:    oklch(0.82 0.08 150);
+  --color-secondary:            oklch(0.32 0 0);
+  --color-secondary-foreground: oklch(0.97 0 0);
+  --color-muted:                oklch(0.32 0 0);
+  --color-muted-foreground:     oklch(0.72 0 0);
+  --color-accent:               oklch(0.30 0.05 150);
+  --color-accent-foreground:    oklch(0.88 0.08 150);
   --color-destructive:          oklch(0.577 0.245 27.325);
-  --color-border:               oklch(0.28 0.005 150);
-  --color-input:                oklch(0.22 0.005 150);
+  --color-border:               oklch(0.36 0 0);
+  --color-input:                oklch(0.32 0 0);
   --color-ring:                 oklch(0.55 0.13 150);
   --color-chart-1:              oklch(0.55 0.13 150);
   --color-chart-2:              oklch(0.65 0.10 150);
   --color-chart-3:              oklch(0.45 0.10 150);
   --color-chart-4:              oklch(0.70 0.07 150);
   --color-chart-5:              oklch(0.35 0.08 150);
-  --color-sidebar:              oklch(0.10 0 0);
-  --color-sidebar-foreground:   oklch(0.93 0 0);
+  --color-sidebar:              oklch(0.16 0 0);
+  --color-sidebar-foreground:   oklch(0.97 0 0);
   --color-sidebar-primary:      oklch(0.55 0.13 150);
   --color-sidebar-primary-foreground: oklch(0.985 0 0);
-  --color-sidebar-accent:       oklch(0.24 0.06 150);
-  --color-sidebar-accent-foreground: oklch(0.82 0.08 150);
-  --color-sidebar-border:       oklch(0.22 0 0);
+  --color-sidebar-accent:       oklch(0.30 0.05 150);
+  --color-sidebar-accent-foreground: oklch(0.88 0.08 150);
+  --color-sidebar-border:       oklch(0.28 0 0);
   --color-sidebar-ring:         oklch(0.55 0.13 150);
 }
 
 /* CSS custom properties for any shadcn internals that reference --primary etc. */
 :root {
   --radius: 0.625rem;
-  --background:     oklch(0.13 0 0);
-  --foreground:     oklch(0.93 0 0);
-  --card:           oklch(0.18 0.005 150);
-  --card-foreground: oklch(0.93 0 0);
+  --background:     oklch(0.20 0 0);
+  --foreground:     oklch(0.97 0 0);
+  --card:           oklch(0.27 0 0);
+  --card-foreground: oklch(0.97 0 0);
   --primary:        oklch(0.55 0.13 150);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary:      oklch(0.22 0.004 150);
-  --secondary-foreground: oklch(0.93 0 0);
-  --muted:          oklch(0.22 0.004 150);
-  --muted-foreground: oklch(0.58 0 0);
-  --accent:         oklch(0.24 0.06 150);
-  --accent-foreground: oklch(0.82 0.08 150);
+  --secondary:      oklch(0.32 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted:          oklch(0.32 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent:         oklch(0.30 0.05 150);
+  --accent-foreground: oklch(0.88 0.08 150);
   --destructive:    oklch(0.577 0.245 27.325);
-  --border:         oklch(0.28 0.005 150);
-  --input:          oklch(0.22 0.005 150);
+  --border:         oklch(0.36 0 0);
+  --input:          oklch(0.32 0 0);
   --ring:           oklch(0.55 0.13 150);
-  --popover:        oklch(0.18 0.005 150);
-  --popover-foreground: oklch(0.93 0 0);
+  --popover:        oklch(0.27 0 0);
+  --popover-foreground: oklch(0.97 0 0);
 }
 
 @layer base {
