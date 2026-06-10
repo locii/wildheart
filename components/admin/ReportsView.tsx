@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -9,11 +9,11 @@ import {
   subWeeks, subMonths, subYears,
   format, startOfMonth, startOfYear, startOfWeek,
 } from "date-fns";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 function financialYear(d: Date): number {
   return d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear();
 }
-import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReportData, ReportPeriod } from "@/lib/reports";
 
@@ -33,6 +33,28 @@ export function ReportsView() {
   const [to, setTo] = useState<string>("");
   const [allTimeSessions, setAllTimeSessions] = useState<number | null>(null);
   const [allTimeClients, setAllTimeClients] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const pickerBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    function onDown(e: MouseEvent) {
+      if (
+        pickerRef.current?.contains(e.target as Node) ||
+        pickerBtnRef.current?.contains(e.target as Node)
+      ) return;
+      setPickerOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [pickerOpen]);
+
+  function openPicker() {
+    setPickerYear(anchor.getFullYear());
+    setPickerOpen((o) => !o);
+  }
 
   const load = useCallback(async (p: ReportPeriod, a: Date) => {
     setLoading(true);
@@ -112,7 +134,58 @@ export function ReportsView() {
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium px-1 min-w-[140px] text-center">{periodLabel()}</span>
+          <div className="relative">
+            <button
+              ref={pickerBtnRef}
+              onClick={openPicker}
+              className="text-sm font-medium px-1 min-w-[140px] text-center hover:text-primary transition-colors"
+            >
+              {periodLabel()}
+            </button>
+            {pickerOpen && (
+              <div
+                ref={pickerRef}
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 z-50 bg-card border rounded-xl shadow-lg p-3 w-52"
+              >
+                <div className="flex items-center justify-between mb-2.5">
+                  <button
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-sm font-semibold">{pickerYear}</span>
+                  <button
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, idx) => {
+                    const isActive = pickerYear === anchor.getFullYear() && idx === anchor.getMonth();
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setAnchor(new Date(pickerYear, idx, 1));
+                          setPickerOpen(false);
+                        }}
+                        className={`py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted/60 text-foreground"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
           <Button variant="ghost" size="sm" onClick={() => navigate(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
