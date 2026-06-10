@@ -1,0 +1,159 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { createAppointmentToken } from "@/lib/tokens";
+import type { Client, Location, AppointmentType, AppointmentWithRelations } from "@/lib/supabase/types";
+import { dispatch } from "@/lib/notifications/dispatch";
+import { sendEmail } from "@/lib/notifications/email";
+
+export async function GET(req: NextRequest) {
+  const supabase = createServiceClient();
+  const { searchParams } = req.nextUrl;
+
+  let query = supabase
+    .from("appointments")
+    .select(`*, client:clients(*), location:locations(*), type:appointment_types(*)`)
+    .is("cancelled_at", null)
+    .order("start_at");
+
+  const locationId = searchParams.get("locationId");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+
+  if (locationId) query = query.eq("location_id", locationId);
+  if (from) query = query.gte("start_at", from);
+  if (to) query = query.lte("start_at", to);
+
+  const { data, error } = await query;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ appointments: data });
+}
+
+export async function POST(req: NextRequest) {
+  const supabase = createServiceClient();
+  const body = await req.json();
+
+  const { locationSlug, typeId, start, client: clientData, source = "self-book", scheduledBy = "client-self" } = body as {
+    locationSlug: string;
+    typeId: string;
+    start: string;
+    client: { first_name: string; last_name: string; phone: string; email: string };
+    source?: string;
+    scheduledBy?: string;
+  };
+
+  // Resolve location
+  const { data: locData } = await supabase.from("locations").select("*");
+  const location = ((locData ?? []) as Location[]).find((l) => l.slug === locationSlug);
+  if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
+
+  // Resolve appointment type
+  const { data: typeData } = await supabase
+    .from("appointment_types")
+    .select("*")
+    .eq("id", typeId)
+    .maybeSingle();
+  const apptType = typeData as AppointmentType | null;
+  if (!apptType) return NextResponse.json({ error: "Type not found" }, { status: 404 });
+
+  const end = new Date(new Date(start).getTime() + apptType.duration_minutes * 60 * 1000).toISOString();
+
+  // Find or create client
+  let client: Client | null = null;
+  let isNewClient = false;
+
+  const { data: existing } = await supabase
+    .from("clients")
+    .select("*")
+    .ilike("email", clientData.email)
+    .maybeSingle();
+
+  if (existing) {
+    client = existing as Client;
+    // Update phone if missing
+    if (!client.phone && clientData.phone) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from("clients") as any)
+        .update({ phone: clientData.phone })
+        .eq("id", client.id);
+    }
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: created } = await (supabase.from("clients") as any)
+      .insert({
+        first_name: clientData.first_name,
+        last_name: clientData.last_name,
+        phone: clientData.phone || null,
+        email: clientData.email.toLowerCase(),
+      })
+      .select()
+      .single();
+    client = created as Client;
+    isNewClient = true;
+  }
+
+  if (!client) return NextResponse.json({ error: "Failed to create client" }, { status: 500 });
+
+  // Create appointment
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: appt, error: apptError } = await (supabase.from("appointments") as any)
+    .insert({
+      client_id: client.id,
+      location_id: location.id,
+      type_id: apptType.id,
+      start_at: start,
+      end_at: end,
+      timezone: location.timezone,
+      source,
+      scheduled_by: scheduledBy,
+    })
+    .select()
+    .single();
+
+  if (apptError) {
+    // Unique constraint violation = slot already taken
+    if (apptError.code === "23P01") {
+      return NextResponse.json({ error: "This time slot is no longer available" }, { status: 409 });
+    }
+    return NextResponse.json({ error: apptError.message }, { status: 500 });
+  }
+
+  // Generate manage token
+  const token = await createAppointmentToken(supabase, appt.id, start);
+
+  // Create intake form record for new clients
+  if (isNewClient) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from("intake_forms") as any).insert({
+      client_id: client.id,
+      appointment_id: appt.id,
+    });
+  }
+
+  // Update client's last_appointment_at
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from("clients") as any)
+    .update({ last_appointment_at: start })
+    .eq("id", client.id);
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const manageUrl = `${appUrl}/manage/${token}`;
+  const intakeUrl = isNewClient ? `${appUrl}/book/${locationSlug}/intake?appt=${appt.id}` : undefined;
+
+  // Build full appointment with relations for notification dispatch
+  const apptWithRelations: AppointmentWithRelations = {
+    ...appt,
+    client,
+    location,
+    type: apptType,
+  };
+
+  // Auto-send booking confirmation (fire and forget — don't block the response)
+  dispatch(supabase, "booking", apptWithRelations, { manageUrl, intakeUrl }).catch(console.error);
+
+  // Send intake invite directly (intake is not logged in notifications table)
+  if (isNewClient && intakeUrl) {
+    sendEmail("intake", apptWithRelations, { intakeUrl }).catch(console.error);
+  }
+
+  return NextResponse.json({ appointment: appt, token, isNewClient });
+}

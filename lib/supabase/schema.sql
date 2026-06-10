@@ -1,5 +1,7 @@
 -- Enable UUID extension
 create extension if not exists "pgcrypto";
+-- Required for the exclusion constraint on appointments (overlap prevention)
+create extension if not exists "btree_gist";
 
 -- ─── Locations ───────────────────────────────────────────────────────────────
 create table locations (
