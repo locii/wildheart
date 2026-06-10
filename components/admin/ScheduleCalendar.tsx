@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   format, addDays, addMonths, startOfWeek, endOfWeek,
   startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
   parseISO, isToday, startOfDay,
 } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { locationColor } from "@/lib/location-colors";
+import { AppointmentSheet } from "@/components/admin/AppointmentSheet";
 import { ChevronLeft, ChevronRight, Search, X, MapPin, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,10 +33,9 @@ const TIME_W = 48;           // time gutter width px
 const MAX_SCROLL_H = 620;    // visible scroll height px
 const DRAG_THRESHOLD = 4;    // px before drag starts (distinguishes click from drag)
 
-const LOC_COLORS: Record<string, string> = {
-  brunswick: "#3b82f6",
-  lorne: "#7c3aed",
-};
+function locColor(locations: Location[], slug: string): string {
+  return locationColor(locations, slug);
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,13 +144,13 @@ export function ScheduleCalendar({
   types: AppointmentType[];
   actions?: React.ReactNode;
 }) {
-  const router = useRouter();
   const [view, setView] = useState<"month" | "week" | "day">("week");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [locationFilter, setLocationFilter] = useState<"all" | string>("all");
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [editingBlock, setEditingBlock] = useState<BlockEdit | null>(null);
+  const [flyoutApptId, setFlyoutApptId] = useState<string | null>(null);
 
   const days = useMemo(() => {
     if (view === "day") return [anchorDate];
@@ -183,7 +183,7 @@ export function ScheduleCalendar({
         title: `${a.client.first_name} ${a.client.last_name}`,
         start: a.start_at,
         end: a.end_at,
-        color: LOC_COLORS[a.location.slug] ?? "#6b7280",
+        color: locColor(locations, a.location.slug),
         kind: "appointment" as const,
         locationSlug: a.location.slug,
         typeName: a.type.name,
@@ -271,7 +271,7 @@ export function ScheduleCalendar({
 
   function handleEventClick(ev: CalEvent) {
     if (ev.kind === "appointment") {
-      router.push(`/admin/appointments/${ev.id.replace("appt-", "")}`);
+      setFlyoutApptId(ev.id.replace("appt-", ""));
     } else {
       setEditingBlock({
         id: ev.overrideId!,
@@ -305,7 +305,7 @@ export function ScheduleCalendar({
         </FilterChip>
         {locations.map((l) => (
           <FilterChip key={l.slug} active={locationFilter === l.slug} onClick={() => setLocationFilter(l.slug)}>
-            <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: LOC_COLORS[l.slug] }} />
+            <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: locColor(locations, l.slug) }} />
             {l.name}
           </FilterChip>
         ))}
@@ -370,7 +370,7 @@ export function ScheduleCalendar({
       <div className="flex items-center gap-4 px-1">
         {locations.map((l) => (
           <span key={l.slug} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: LOC_COLORS[l.slug] }} />
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: locColor(locations, l.slug) }} />
             {l.name}
           </span>
         ))}
@@ -394,6 +394,12 @@ export function ScheduleCalendar({
           onSaved={() => { setEditingBlock(null); fetchEvents(); }}
         />
       )}
+
+      <AppointmentSheet
+        appointmentId={flyoutApptId}
+        onClose={() => setFlyoutApptId(null)}
+        onChanged={() => fetchEvents()}
+      />
     </div>
   );
 }
@@ -410,6 +416,7 @@ interface DragRef {
   origStart: string;
   origEnd: string;
   startY: number;
+  origColIndex: number;
   moved: boolean;
 }
 
@@ -435,7 +442,7 @@ function TimeGrid({
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragRef | null>(null);
   const selectRef = useRef<SelectRef | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; deltaSlots: number } | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; origColIndex: number; targetColIndex: number; deltaSlots: number } | null>(null);
   const [selecting, setSelecting] = useState<SelectRef | null>(null);
   const [nowY, setNowY] = useState<number | null>(null);
 
@@ -476,7 +483,8 @@ function TimeGrid({
 
     if (eventEl) {
       const eid = eventEl.dataset.eid!;
-      dragRef.current = { eventId: eid, origStart: eventEl.dataset.start!, origEnd: eventEl.dataset.end!, startY: e.clientY, moved: false };
+      const origColIndex = getColIndex(e.clientX);
+      dragRef.current = { eventId: eid, origStart: eventEl.dataset.start!, origEnd: eventEl.dataset.end!, startY: e.clientY, origColIndex, moved: false };
       scrollRef.current?.setPointerCapture(e.pointerId);
     } else {
       e.preventDefault();
@@ -495,8 +503,9 @@ function TimeGrid({
       if (!dragRef.current.moved && Math.abs(deltaY) < DRAG_THRESHOLD) return;
       dragRef.current.moved = true;
       const deltaSlots = Math.round(deltaY / SLOT_H);
-      if (deltaSlots !== (dragging?.deltaSlots ?? 0)) {
-        setDragging({ id: dragRef.current.eventId, deltaSlots });
+      const targetColIndex = getColIndex(e.clientX);
+      if (deltaSlots !== (dragging?.deltaSlots ?? 0) || targetColIndex !== (dragging?.targetColIndex ?? dragRef.current.origColIndex)) {
+        setDragging({ id: dragRef.current.eventId, origColIndex: dragRef.current.origColIndex, targetColIndex, deltaSlots });
       }
     } else if (selectRef.current) {
       const y = getGridY(e.clientY);
@@ -513,10 +522,14 @@ function TimeGrid({
       const { eventId, origStart, origEnd, moved } = dragRef.current;
       const deltaSlots = dragging?.deltaSlots ?? 0;
 
-      if (moved && deltaSlots !== 0) {
+      const targetColIndex = dragging?.targetColIndex ?? dragRef.current?.origColIndex ?? 0;
+      const origColIndex = dragRef.current?.origColIndex ?? 0;
+      const deltaCol = targetColIndex - origColIndex;
+
+      if (moved && (deltaSlots !== 0 || deltaCol !== 0)) {
         const ev = events.find((ev) => ev.id === eventId);
         if (ev) {
-          const deltaMs = deltaSlots * SLOT_MIN * 60000;
+          const deltaMs = deltaSlots * SLOT_MIN * 60000 + deltaCol * 86400000;
           onEventDrop(
             ev,
             new Date(parseISO(origStart).getTime() + deltaMs),
@@ -634,7 +647,9 @@ function TimeGrid({
                 {/* Events */}
                 {positioned.map((ev) => {
                   const isDragging = dragging?.id === ev.id;
-                  const top = ev.top + (isDragging ? (dragging?.deltaSlots ?? 0) * SLOT_H : 0);
+                  const isCrossDay = isDragging && dragging!.targetColIndex !== colIndex;
+                  // Cross-day drag: show ghost in target column, dim here
+                  const top = isDragging && !isCrossDay ? ev.top + dragging!.deltaSlots * SLOT_H : ev.top;
                   const pct = 96 / ev.numTracks;
                   const leftPct = ev.track * pct + 1;
 
@@ -644,7 +659,7 @@ function TimeGrid({
                       data-eid={ev.id}
                       data-start={ev.start}
                       data-end={ev.end}
-                      className={`absolute rounded-md overflow-hidden cursor-pointer transition-opacity ${isDragging ? "opacity-60 z-30 shadow-lg" : "z-10"}`}
+                      className={`absolute rounded-md overflow-hidden cursor-pointer ${isDragging ? "z-30 shadow-lg" : "z-10"}`}
                       style={{
                         top,
                         height: ev.height,
@@ -652,6 +667,7 @@ function TimeGrid({
                         width: `${pct}%`,
                         backgroundColor: ev.color,
                         border: `1px solid ${ev.color}bb`,
+                        opacity: isCrossDay ? 0.25 : isDragging ? 0.7 : 1,
                       }}
                     >
                       {ev.kind === "block" ? (
@@ -674,6 +690,28 @@ function TimeGrid({
                     </div>
                   );
                 })}
+
+                {/* Cross-day drag ghost rendered in target column */}
+                {dragging && dragging.targetColIndex === colIndex && dragging.origColIndex !== colIndex && (() => {
+                  const draggedEv = events.find((ev) => ev.id === dragging.id);
+                  if (!draggedEv) return null;
+                  const zs = toMelb(draggedEv.start);
+                  const ze = toMelb(draggedEv.end);
+                  const minsFromTop = zs.getHours() * 60 + zs.getMinutes() - START_HOUR * 60;
+                  const ghostTop = (minsFromTop / SLOT_MIN) * SLOT_H + dragging.deltaSlots * SLOT_H;
+                  const ghostH = Math.max(SLOT_H, ((ze.getTime() - zs.getTime()) / 60000 / SLOT_MIN) * SLOT_H);
+                  return (
+                    <div
+                      key="ghost"
+                      className="absolute left-[1%] w-[96%] rounded-md overflow-hidden z-30 shadow-lg pointer-events-none"
+                      style={{ top: ghostTop, height: ghostH, backgroundColor: draggedEv.color, border: `1px solid ${draggedEv.color}bb`, opacity: 0.85 }}
+                    >
+                      <div className="px-1.5 py-0.5">
+                        <div className="text-[10px] font-semibold truncate text-white">{draggedEv.title}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Selection overlay */}
                 {selOver && (

@@ -7,6 +7,7 @@ export type Location = {
   name: string;
   slug: string;
   timezone: string;
+  color: string | null;
   created_at: string;
 };
 

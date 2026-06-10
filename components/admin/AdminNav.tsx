@@ -13,6 +13,7 @@ import {
   Plus,
   Code2,
   Layers,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Today", icon: LayoutDashboard },
   { href: "/admin/appointments", label: "Schedule", icon: CalendarDays },
   { href: "/admin/availability", label: "Hours", icon: Clock },
+  { href: "/admin/locations", label: "Locations", icon: MapPin },
   { href: "/admin/services", label: "Services", icon: Layers },
   { href: "/admin/clients", label: "Clients", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: BarChart2 },

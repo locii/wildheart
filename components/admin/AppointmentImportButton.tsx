@@ -121,7 +121,7 @@ export function AppointmentImportButton({
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); } setOpen(o); }}>
-        <DialogContent className="max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Import Squarespace appointments</DialogTitle>
           </DialogHeader>
