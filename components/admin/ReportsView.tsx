@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import {
   addWeeks, addMonths, addYears,
@@ -214,11 +214,20 @@ export function ReportsView() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(v: any) => [`$${v}`, "Revenue"]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, background: "var(--color-card)", border: "1px solid var(--color-border)", color: "var(--color-foreground)" }}
+                    cursor={{ fill: "transparent" }}
+                  />
                   <Bar
                     dataKey="revenue"
                     fill="var(--color-chart-1)"
                     radius={[4, 4, 0, 0]}
                     activeBar={{ fill: "var(--color-chart-2)" }}
+                    isAnimationActive
+                    animationDuration={600}
+                    animationEasing="ease-out"
                   />
                 </BarChart>
               </ResponsiveContainer>
