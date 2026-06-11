@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { BookingFlow } from "@/components/booking/BookingFlow";
+import { PublicLayout } from "@/components/public/PublicLayout";
+import { getNav } from "@/lib/cms";
 import type { Location, AppointmentType } from "@/lib/supabase/types";
 
 export default async function BookPage({
@@ -16,26 +18,29 @@ export default async function BookPage({
 
   const supabase = createServiceClient();
 
-  const { data: locData } = await supabase.from("locations").select("*");
+  const [{ data: locData }, { data: typesData }, nav] = await Promise.all([
+    supabase.from("locations").select("*"),
+    supabase.from("appointment_types").select("*").eq("is_active", true).order("sort_order"),
+    getNav(),
+  ]);
+
   const location = ((locData ?? []) as Location[]).find((l) => l.slug === slug);
   if (!location) notFound();
-
-  const { data: typesData } = await supabase
-    .from("appointment_types")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order");
   const types = (typesData ?? []) as AppointmentType[];
 
+  if (isEmbed) {
+    return <BookingFlow location={location} types={types} embed />;
+  }
+
   return (
-    <div className={isEmbed ? "" : "max-w-lg mx-auto px-4 py-8"}>
-      {!isEmbed && (
+    <PublicLayout nav={nav}>
+      <div className="max-w-lg mx-auto px-4 py-10">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold">Wildheart Psychotherapy</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{location.name}</p>
+          <h1 className="text-xl font-semibold text-stone-900">Wildheart Psychotherapy</h1>
+          <p className="text-sm text-stone-500 mt-0.5">{location.name}</p>
         </div>
-      )}
-      <BookingFlow location={location} types={types} embed={isEmbed} />
-    </div>
+        <BookingFlow location={location} types={types} embed={false} />
+      </div>
+    </PublicLayout>
   );
 }

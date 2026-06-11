@@ -29,8 +29,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin") ||
-    request.nextUrl.pathname === "/";
+  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
 
   if (isAdminRoute && !user) {
     const url = request.nextUrl.clone();
@@ -49,6 +48,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|book|manage|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|book|manage|api|resources|about|services|contact|workshops|finding-us).*)",
   ],
 };

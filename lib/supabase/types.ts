@@ -110,6 +110,52 @@ export type Notification = {
   created_at: string;
 };
 
+// ─── CMS Types ────────────────────────────────────────────────────────────────
+
+export type SidebarBlock = {
+  id: string;
+  name: string;
+  image_url: string | null;
+  button_label: string | null;
+  button_url: string | null;
+  body: string | null;
+  updated_at: string;
+};
+
+export type Page = {
+  slug: string;
+  title: string;
+  content: string | null;
+  meta_description: string | null;
+  image_url: string | null;
+  sidebar_block_id: string | null;
+  footer_block_id: string | null;
+  updated_at: string;
+};
+
+export type PageWithBlocks = Page & {
+  sidebar_block: SidebarBlock | null;
+  footer_block: SidebarBlock | null;
+};
+
+export type Article = {
+  id: string;
+  slug: string | null;
+  title: string;
+  excerpt: string | null;
+  content: string | null;
+  external_url: string | null;
+  image_url: string | null;
+  published_at: string;
+  updated_at: string;
+};
+
+export type NavItem = {
+  label: string;
+  href?: string;
+  children?: NavItem[];
+};
+
 // ─── Insert types ─────────────────────────────────────────────────────────────
 
 export type LocationInsert = Omit<Location, "id" | "created_at">;
@@ -176,6 +222,21 @@ export interface Database {
         Row: Notification;
         Insert: NotificationInsert;
         Update: Partial<NotificationInsert>;
+      };
+      pages: {
+        Row: Page;
+        Insert: Omit<Page, "updated_at"> & { updated_at?: string };
+        Update: Partial<Page>;
+      };
+      articles: {
+        Row: Article;
+        Insert: Omit<Article, "id" | "published_at" | "updated_at"> & { published_at?: string; updated_at?: string };
+        Update: Partial<Omit<Article, "id">>;
+      };
+      settings: {
+        Row: { key: string; value: Json; updated_at: string };
+        Insert: { key: string; value: Json; updated_at?: string };
+        Update: { value?: Json; updated_at?: string };
       };
     };
     Views: Record<string, never>;
