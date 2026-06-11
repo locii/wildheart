@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   if (body.type === "intake") {
     // Intake doesn't use manage URL, uses intake URL
-    const intakeUrl = `${appUrl}/book/${appt.location.slug}/intake?appt=${appt.id}`;
+    const intakeUrl = `${appUrl}/appointments/${appt.location.slug}/intake?appt=${appt.id}`;
     await sendEmail("intake", appt, { intakeUrl });
     return NextResponse.json({ ok: true });
   }

@@ -15,6 +15,7 @@ export type Location = {
 export type AppointmentType = {
   id: string;
   name: string;
+  slug: string | null;
   duration_minutes: number;
   price: number;
   location_id: string | null;
@@ -131,6 +132,7 @@ export type Page = {
   image_url: string | null;
   sidebar_block_id: string | null;
   footer_block_id: string | null;
+  aside_class: string | null;
   updated_at: string;
 };
 

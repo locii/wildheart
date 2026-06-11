@@ -9,11 +9,11 @@ export default async function SuccessPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ location: string }>;
+  params: Promise<{ slug: string }>;
   searchParams: Promise<{ id?: string; token?: string; intake?: string }>;
 }) {
   const { id, token, intake } = await searchParams;
-  const { location: slug } = await params;
+  const { slug } = await params;
   const isNewClient = intake === "1";
 
   let appt: AppointmentWithRelations | null = null;
@@ -42,10 +42,7 @@ export default async function SuccessPage({
           <SummaryRow label="Location" value={appt.location.name} />
           <SummaryRow
             label="Date"
-            value={format(
-              toZonedTime(new Date(appt.start_at), appt.timezone),
-              "EEEE d MMMM yyyy"
-            )}
+            value={format(toZonedTime(new Date(appt.start_at), appt.timezone), "EEEE d MMMM yyyy")}
           />
           <SummaryRow
             label="Time"
@@ -72,7 +69,7 @@ export default async function SuccessPage({
           <div className="flex gap-2">
             {id && (
               <Link
-                href={`/book/${slug}/intake?appointmentId=${id}`}
+                href={`/appointments/${slug}/intake?appointmentId=${id}`}
                 className="flex-1 text-center bg-blue-600 text-white text-sm font-medium py-2 rounded-lg"
               >
                 Complete intake form
@@ -85,10 +82,7 @@ export default async function SuccessPage({
         </div>
       )}
 
-      <Link
-        href={`/book/${slug}`}
-        className="text-sm text-gray-400 hover:text-gray-600"
-      >
+      <Link href={`/appointments/${slug}`} className="text-sm text-gray-400 hover:text-gray-600">
         Book another appointment
       </Link>
     </div>

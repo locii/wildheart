@@ -13,7 +13,7 @@ export default function IntakePage() {
   const params = useParams();
   const router = useRouter();
   const appointmentId = searchParams.get("appointmentId");
-  const locationSlug = params.location as string;
+  const locationSlug = params.slug as string;
 
   const [questions, setQuestions] = useState<IntakeQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -37,7 +37,7 @@ export default function IntakePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ appointmentId, data: answers, skipped }),
     });
-    router.push(`/book/${locationSlug}/success?skipped=${skipped ? "1" : "0"}`);
+    router.push(`/appointments/${locationSlug}/success?skipped=${skipped ? "1" : "0"}`);
   }
 
   if (loading) {
@@ -52,7 +52,7 @@ export default function IntakePage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
         <p className="text-sm text-gray-400">No intake form needed.</p>
-        <Button className="mt-4" onClick={() => router.push(`/book/${locationSlug}/success`)}>
+        <Button className="mt-4" onClick={() => router.push(`/appointments/${locationSlug}/success`)}>
           Continue
         </Button>
       </div>
@@ -90,18 +90,10 @@ export default function IntakePage() {
       </div>
 
       <div className="flex gap-3 mt-8">
-        <Button
-          onClick={() => handleSubmit(false)}
-          disabled={submitting}
-          className="flex-1"
-        >
+        <Button onClick={() => handleSubmit(false)} disabled={submitting} className="flex-1">
           {submitting ? "Submitting…" : "Submit"}
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => handleSubmit(true)}
-          disabled={submitting}
-        >
+        <Button variant="outline" onClick={() => handleSubmit(true)} disabled={submitting}>
           Skip
         </Button>
       </div>

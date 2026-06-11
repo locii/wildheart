@@ -7,14 +7,14 @@ import {
   eachDayOfInterval, getDay, format, isBefore, startOfDay,
   parseISO, isSameDay,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Clock, DollarSign } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, DollarSign, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Location, AppointmentType } from "@/lib/supabase/types";
 
 interface TimeSlot { start: string; end: string; label: string }
-type Step = "type" | "date" | "time" | "details" | "confirm";
+type Step = "location" | "type" | "date" | "time" | "details" | "confirm";
 
 interface ClientData {
   first_name: string;
@@ -23,32 +23,58 @@ interface ClientData {
   email: string;
 }
 
-const STEPS: Step[] = ["type", "date", "time", "details", "confirm"];
-const STEP_LABELS: Record<Step, string> = {
-  type: "Service",
-  date: "Date",
-  time: "Time",
-  details: "Your details",
-  confirm: "Confirm",
-};
-
 export function BookingFlow({
-  location,
+  locations,
+  initialLocation,
   types,
+  initialType,
   embed,
 }: {
-  location: Location;
+  locations: Location[];
+  initialLocation?: Location;
   types: AppointmentType[];
+  initialType?: AppointmentType;
   embed: boolean;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("type");
-  const [selectedType, setSelectedType] = useState<AppointmentType | null>(null);
+
+  // Determine which steps are needed
+  const needsLocation = !initialLocation && locations.length > 1;
+  const needsType = !initialType;
+
+  const buildSteps = (): Step[] => {
+    const steps: Step[] = [];
+    if (needsLocation) steps.push("location");
+    if (needsType) steps.push("type");
+    steps.push("date", "time", "details", "confirm");
+    return steps;
+  };
+
+  const STEPS = buildSteps();
+  const STEP_LABELS: Record<Step, string> = {
+    location: "Location",
+    type: "Service",
+    date: "Date",
+    time: "Time",
+    details: "Your details",
+    confirm: "Confirm",
+  };
+
+  const [step, setStep] = useState<Step>(STEPS[0]);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    initialLocation ?? (locations.length === 1 ? locations[0] : null)
+  );
+  const [selectedType, setSelectedType] = useState<AppointmentType | null>(initialType ?? null);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [client, setClient] = useState<ClientData>({ first_name: "", last_name: "", phone: "", email: "" });
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState("");
+
+  function advance() {
+    const idx = STEPS.indexOf(step);
+    if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
+  }
 
   function goBack() {
     const idx = STEPS.indexOf(step);
@@ -56,6 +82,11 @@ export function BookingFlow({
   }
 
   const stepIdx = STEPS.indexOf(step);
+
+  // Filter types by location if a location is selected and types are location-scoped
+  const visibleTypes = selectedLocation
+    ? types.filter((t) => t.location_id === null || t.location_id === selectedLocation.id)
+    : types;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
@@ -79,37 +110,43 @@ export function BookingFlow({
       </div>
 
       <div className="p-4">
+        {step === "location" && (
+          <LocationStep
+            locations={locations}
+            onSelect={(l) => { setSelectedLocation(l); advance(); }}
+          />
+        )}
         {step === "type" && (
           <TypeStep
-            types={types}
-            onSelect={(t) => { setSelectedType(t); setStep("date"); }}
+            types={visibleTypes}
+            onSelect={(t) => { setSelectedType(t); advance(); }}
           />
         )}
-        {step === "date" && selectedType && (
+        {step === "date" && selectedType && selectedLocation && (
           <DateStep
-            locationSlug={location.slug}
+            locationSlug={selectedLocation.slug}
             duration={selectedType.duration_minutes}
-            onSelect={(d) => { setSelectedDate(d); setStep("time"); }}
+            onSelect={(d) => { setSelectedDate(d); advance(); }}
           />
         )}
-        {step === "time" && selectedType && selectedDate && (
+        {step === "time" && selectedType && selectedLocation && selectedDate && (
           <TimeStep
-            locationSlug={location.slug}
+            locationSlug={selectedLocation.slug}
             date={selectedDate}
             duration={selectedType.duration_minutes}
-            onSelect={(s) => { setSelectedSlot(s); setStep("details"); }}
+            onSelect={(s) => { setSelectedSlot(s); advance(); }}
           />
         )}
         {step === "details" && (
           <DetailsStep
             client={client}
             onChange={setClient}
-            onNext={() => setStep("confirm")}
+            onNext={advance}
           />
         )}
-        {step === "confirm" && selectedType && selectedDate && selectedSlot && (
+        {step === "confirm" && selectedType && selectedLocation && selectedDate && selectedSlot && (
           <ConfirmStep
-            location={location}
+            location={selectedLocation}
             type={selectedType}
             slot={selectedSlot}
             client={client}
@@ -122,7 +159,7 @@ export function BookingFlow({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  locationSlug: location.slug,
+                  locationSlug: selectedLocation.slug,
                   typeId: selectedType.id,
                   start: selectedSlot.start,
                   client,
@@ -140,11 +177,33 @@ export function BookingFlow({
                 token: json.token,
                 ...(json.isNewClient ? { intake: "1" } : {}),
               });
-              router.push(`/book/${location.slug}/success?${params}`);
+              router.push(`/appointments/${selectedLocation.slug}/success?${params}`);
             }}
           />
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Step: Location ───────────────────────────────────────────────────────────
+
+function LocationStep({ locations, onSelect }: { locations: Location[]; onSelect: (l: Location) => void }) {
+  return (
+    <div className="space-y-2">
+      {locations.map((l) => (
+        <button
+          key={l.id}
+          onClick={() => onSelect(l)}
+          className="w-full text-left p-4 rounded-xl border border-stone-200 hover:border-amber-400 hover:bg-amber-50/50 active:bg-amber-50 transition-colors text-stone-800"
+        >
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-stone-400 shrink-0" />
+            <span className="font-medium text-sm">{l.name}</span>
+          </div>
+          {l.address && <p className="text-xs text-stone-400 mt-1 ml-6">{l.address}</p>}
+        </button>
+      ))}
     </div>
   );
 }
@@ -214,7 +273,6 @@ function DateStep({
 
   return (
     <div>
-      {/* Month navigation */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setViewMonth((m) => subMonths(m, 1))}
@@ -232,14 +290,12 @@ function DateStep({
         </button>
       </div>
 
-      {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
           <div key={d} className="text-center text-[10px] font-medium text-stone-400 py-1">{d}</div>
         ))}
       </div>
 
-      {/* Calendar grid */}
       <div className={`grid grid-cols-7 gap-y-1 ${loading ? "opacity-50" : ""}`}>
         {Array(startDow).fill(null).map((_, i) => <div key={`pad-${i}`} />)}
         {days.map((day) => {
@@ -297,9 +353,7 @@ function TimeStep({
   const dateLabel = format(parseISO(date), "EEE d MMMM");
 
   if (loading) {
-    return (
-      <div className="py-8 text-center text-sm text-stone-400">Loading times…</div>
-    );
+    return <div className="py-8 text-center text-sm text-stone-400">Loading times…</div>;
   }
 
   return (

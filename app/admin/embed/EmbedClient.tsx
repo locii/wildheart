@@ -50,7 +50,7 @@ export function EmbedClient({ appUrl, icalUrl }: { appUrl: string; icalUrl: stri
 }
 
 function EmbedPanel({ appUrl, location }: { appUrl: string; location: { slug: string; name: string } }) {
-  const bookingUrl = `${appUrl}/book/${location.slug}?embed=true`;
+  const bookingUrl = `${appUrl}/appointments/${location.slug}?embed=true`;
   const iframeCode = `<iframe
   src="${bookingUrl}"
   width="100%"

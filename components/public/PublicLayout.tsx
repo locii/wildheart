@@ -8,12 +8,14 @@ export function PublicLayout({
   hero,
   sidebar,
   imageUrl,
+  asideClassName,
 }: {
   children: React.ReactNode;
   nav: NavItem[];
   hero?: React.ReactNode;
   sidebar?: React.ReactNode;
   imageUrl?: string;
+  asideClassName?: string;
 }) {
   return (
     <div className="public-site min-h-screen antialiased">
@@ -23,13 +25,13 @@ export function PublicLayout({
         <main className="rounded-b-lg bg-white min-h-[60vh] border-t-12 border-slate-100 px-8">
           {sidebar|| imageUrl ? (
             <div className="flex flex-col gap-8 md:flex-row max-w-5xl">
-              <aside className="order-last md:order-first w-full md:w-1/4 md:pt-12">
+              <aside className={`order-last md:order-first w-full md:w-1/4 md:pt-12${asideClassName ? ` ${asideClassName}` : ""}`}>
                 {imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={imageUrl}
                     alt=""
-                    className="w-full rounded-xl object-cover mb-6"
+                    className="w-full rounded-xl object-cover mb-6 p-4 bg-white"
                   />
                 )}
                 {sidebar}
@@ -51,7 +53,7 @@ export function PublicLayout({
             <Link href="/" className="text-white/70 hover:text-white transition-colors">Home</Link>
             <Link href="/services" className="text-white/70 hover:text-white transition-colors">Services</Link>
             <Link href="/resources" className="text-white/70 hover:text-white transition-colors">Resources</Link>
-            <Link href="/book/brunswick" className="text-white/70 hover:text-white transition-colors">Appointments</Link>
+            <Link href="/appointments/brunswick" className="text-white/70 hover:text-white transition-colors">Appointments</Link>
             <Link href="/contact" className="text-white/70 hover:text-white transition-colors">Contact</Link>
           </nav>
           <p className="mt-6 text-xs uppercase text-white/40 tracking-wide">

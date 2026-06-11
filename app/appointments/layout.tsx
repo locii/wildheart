@@ -1,4 +1,4 @@
-export default function BookLayout({ children }: { children: React.ReactNode }) {
+export default function AppointmentsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       {children}

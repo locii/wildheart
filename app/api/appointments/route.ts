@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const manageUrl = `${appUrl}/manage/${token}`;
-  const intakeUrl = isNewClient ? `${appUrl}/book/${locationSlug}/intake?appt=${appt.id}` : undefined;
+  const intakeUrl = isNewClient ? `${appUrl}/appointments/${locationSlug}/intake?appt=${appt.id}` : undefined;
 
   // Build full appointment with relations for notification dispatch
   const apptWithRelations: AppointmentWithRelations = {
