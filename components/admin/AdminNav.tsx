@@ -18,7 +18,7 @@ export const groups = [
     label: "Appointments",
     icon: CalendarDays,
     href: "/admin/dashboard",
-    prefix: ["/admin/dashboard", "/admin/appointments", "/admin/clients", "/admin/reports"],
+    prefix: ["/admin/dashboard", "/admin/appointments", "/admin/clients", "/admin/reports", "/admin/contact"],
   },
   {
     label: "Content",

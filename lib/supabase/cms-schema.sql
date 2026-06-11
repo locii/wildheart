@@ -261,3 +261,14 @@ on conflict (slug) do nothing;
 
 -- Add published field to articles (run if column doesn't exist)
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT true;
+
+-- Contact form submissions
+CREATE TABLE IF NOT EXISTS contact_submissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text NOT NULL,
+  phone text,
+  message text NOT NULL,
+  read_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);

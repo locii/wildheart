@@ -3,8 +3,9 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
 
 function fmtDt(iso: string): string {
-  // iCal UTC format: YYYYMMDDTHHMMSSZ
-  return iso.replace(/[-:]/g, "").replace(/\.\d+/, "").replace(" ", "T");
+  // Normalise to UTC and format as YYYYMMDDTHHMMSSZ
+  const d = new Date(iso);
+  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
 }
 
 function escape(s: string): string {
@@ -37,9 +38,25 @@ export async function GET(req: NextRequest) {
     .is("cancelled_at", null)
     .order("start_at");
 
-  if (error) return new NextResponse("Database error", { status: 500 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const debug = req.nextUrl.searchParams.get("debug") === "1";
   const appointments = (data ?? []) as unknown as AppointmentWithRelations[];
+
+  if (debug) {
+    return NextResponse.json({
+      count: appointments.length,
+      appointments: appointments.map((a) => ({
+        id: a.id,
+        start_at: a.start_at,
+        end_at: a.end_at,
+        cancelled_at: a.cancelled_at,
+        client: a.client ? `${a.client.first_name} ${a.client.last_name}` : null,
+        type: a.type?.name,
+        location: a.location?.name,
+      })),
+    });
+  }
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://wildheartpsychotherapy.com.au";
   const domain = appUrl.replace(/https?:\/\//, "");
   const now = fmtDt(new Date().toISOString());

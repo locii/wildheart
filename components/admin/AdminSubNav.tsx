@@ -14,6 +14,7 @@ import {
   Clock,
   Layers,
   Code2,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { groups } from "./AdminNav";
@@ -24,6 +25,7 @@ const subItems: Record<string, { href: string; label: string; icon: React.Elemen
     { href: "/admin/appointments", label: "Schedule", icon: CalendarDays },
     { href: "/admin/clients", label: "Clients", icon: Users },
     { href: "/admin/reports", label: "Reports", icon: BarChart2 },
+    { href: "/admin/contact", label: "Messages", icon: MessageSquare },
   ],
   Content: [
     { href: "/admin/pages", label: "Pages", icon: FileText },
