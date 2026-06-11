@@ -116,6 +116,12 @@
   input, textarea, select {
     --tw-ring-offset-color: var(--background);
   }
+
+  .highlight-block img {
+  @apply shadow-xl;
+  background:#fff;
+  padding:8px
+}
 }
 
 /* ── Public site styles ──────────────────────────────────────── */
@@ -159,3 +165,11 @@
   color: #666;
   font-weight: 300;
 }
+
+.highlight-block {
+  margin-top:-100px;
+  position:relative;
+  z-index: 30;
+}
+
+

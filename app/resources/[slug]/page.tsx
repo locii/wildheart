@@ -49,7 +49,7 @@ export default async function ArticlePage({
 
   if (article.external_url) {
     return (
-      <PublicLayout nav={nav}>
+      <PublicLayout nav={nav} asideClassName="aside-articles">
         <article className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-10">
             {imageAndNav}

@@ -33,7 +33,7 @@ export default async function CmsPage({
   const sidebar = page.sidebar_block ? <SidebarBlock block={page.sidebar_block} /> : undefined;
 
   return (
-    <PublicLayout nav={nav} sidebar={sidebar} imageUrl={page.image_url ?? undefined} asideClassName={page.aside_class ?? undefined}>
+    <PublicLayout nav={nav} sidebar={sidebar} imageUrl={page.image_url ?? undefined} asideClassName={["aside-pages", page.aside_class].filter(Boolean).join(" ")}>
       <article className="max-w-3xl mx-auto px-4 py-12">
         
         {page.content ? (
