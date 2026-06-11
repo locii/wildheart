@@ -1,26 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { toZonedTime, format } from "date-fns-tz";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
 
-function fmtDt(iso: string): string {
-  // Normalise to UTC and format as YYYYMMDDTHHMMSSZ
-  const d = new Date(iso);
-  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+const TZ = "Australia/Melbourne";
+
+function fmtLocal(iso: string): string {
+  const zoned = toZonedTime(new Date(iso), TZ);
+  return format(zoned, "yyyyMMdd'T'HHmmss", { timeZone: TZ });
 }
 
-function escape(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+function icalEscape(s: string): string {
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
 }
 
+// RFC 5545 line folding at 75 octets
 function fold(line: string): string {
-  // RFC 5545: lines longer than 75 octets should be folded
-  const out: string[] = [];
-  while (line.length > 75) {
-    out.push(line.slice(0, 75));
-    line = " " + line.slice(75);
+  const encoder = new TextEncoder();
+  let out = "";
+  let current = "";
+  let bytes = 0;
+  for (const char of line) {
+    const charBytes = encoder.encode(char).length;
+    if (bytes + charBytes > 75) {
+      out += current + "\r\n ";
+      current = char;
+      bytes = 1 + charBytes; // 1 for the leading space
+    } else {
+      current += char;
+      bytes += charBytes;
+    }
   }
-  out.push(line);
-  return out.join("\r\n");
+  return out + current;
 }
 
 export async function GET(req: NextRequest) {
@@ -32,18 +47,22 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createServiceClient();
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
   const { data, error } = await supabase
     .from("appointments")
     .select("*, client:clients(*), location:locations(*), type:appointment_types(*)")
     .is("cancelled_at", null)
-    .order("start_at");
+    .gte("start_at", oneYearAgo.toISOString())
+    .order("start_at")
+    .limit(5000);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const debug = req.nextUrl.searchParams.get("debug") === "1";
   const appointments = (data ?? []) as unknown as AppointmentWithRelations[];
 
-  if (debug) {
+  if (req.nextUrl.searchParams.get("debug") === "1") {
     return NextResponse.json({
       count: appointments.length,
       appointments: appointments.map((a) => ({
@@ -57,49 +76,48 @@ export async function GET(req: NextRequest) {
       })),
     });
   }
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://wildheartpsychotherapy.com.au";
+
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://wildheartpsychotherapy.com.au").replace(/\/$/, "");
   const domain = appUrl.replace(/https?:\/\//, "");
-  const now = fmtDt(new Date().toISOString());
+  const stampUtc = format(toZonedTime(new Date(), TZ), "yyyyMMdd'T'HHmmss'Z'", { timeZone: "UTC" });
 
-  const events = appointments.map((appt) => {
-    const clientName = `${appt.client.first_name} ${appt.client.last_name}`;
-    const summary = `${clientName} – ${appt.type.name}`;
-    const description = [
-      `Client: ${clientName}`,
-      `Type: ${appt.type.name}`,
-      `Location: ${appt.location.name}`,
-      appt.location.address ? `Address: ${appt.location.address}` : null,
-      `Duration: ${appt.type.duration_minutes} min`,
-    ]
-      .filter(Boolean)
-      .join("\\n");
-
-    return [
-      "BEGIN:VEVENT",
-      fold(`UID:${appt.id}@${domain}`),
-      fold(`DTSTAMP:${now}`),
-      fold(`DTSTART:${fmtDt(appt.start_at)}`),
-      fold(`DTEND:${fmtDt(appt.end_at)}`),
-      fold(`SUMMARY:${escape(summary)}`),
-      fold(`DESCRIPTION:${description}`),
-      appt.location.address ? fold(`LOCATION:${escape(appt.location.address)}`) : null,
-      "END:VEVENT",
-    ]
-      .filter(Boolean)
-      .join("\r\n");
-  });
-
-  const cal = [
+  const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     `PRODID:-//${domain}//Wildheart Appointments//EN`,
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "X-WR-CALNAME:Wildheart Appointments",
-    "X-WR-TIMEZONE:Australia/Melbourne",
-    ...events,
-    "END:VCALENDAR",
-  ].join("\r\n");
+    `X-WR-TIMEZONE:${TZ}`,
+  ];
+
+  for (const appt of appointments) {
+    const clientName = `${appt.client.first_name} ${appt.client.last_name}`;
+    const summary = `${clientName} - ${appt.type.name}`;
+    const descParts = [
+      `Client: ${clientName}`,
+      `Type: ${appt.type.name}`,
+      `Location: ${appt.location.name}`,
+      appt.location.address ? `Address: ${appt.location.address}` : null,
+      `Duration: ${appt.type.duration_minutes} min`,
+    ].filter(Boolean).join("\\n");
+
+    lines.push("BEGIN:VEVENT");
+    lines.push(fold(`UID:${appt.id}@${domain}`));
+    lines.push(`DTSTAMP:${stampUtc}`);
+    lines.push(fold(`DTSTART;TZID=${TZ}:${fmtLocal(appt.start_at)}`));
+    lines.push(fold(`DTEND;TZID=${TZ}:${fmtLocal(appt.end_at)}`));
+    lines.push(fold(`SUMMARY:${icalEscape(summary)}`));
+    lines.push(fold(`DESCRIPTION:${descParts}`));
+    if (appt.location.address) {
+      lines.push(fold(`LOCATION:${icalEscape(appt.location.address)}`));
+    }
+    lines.push("END:VEVENT");
+  }
+
+  lines.push("END:VCALENDAR");
+
+  const cal = lines.join("\r\n") + "\r\n";
 
   return new NextResponse(cal, {
     headers: {
