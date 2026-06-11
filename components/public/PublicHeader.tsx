@@ -19,7 +19,7 @@ export function PublicHeader({ nav }: { nav: NavItem[] }) {
           <NavSlideOut items={nav} />
         </div>
         <div className="relative z-10 p-8">
-          <h1 className="font-light text-6xl md:text-5xl lowercase tracking-widest text-white">
+          <h1 className="font-light text-4xl md:text-4xl lowercase tracking-widest text-white mb-4">
             <Link href="/" className="text-white! hover:text-orange-400 transition-colors">WildHeart</Link>
           </h1>
           <p className="text-sm text-white uppercase tracking-widest">

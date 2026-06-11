@@ -22,7 +22,7 @@ export function PublicLayout({
       <div className="px-4 md:px-8">
         <main className="rounded-b-lg bg-white min-h-[60vh] border-t-12 border-slate-100 px-8">
           {sidebar|| imageUrl ? (
-            <div className="flex flex-col md:flex-row max-w-5xl">
+            <div className="flex flex-col gap-8 md:flex-row max-w-5xl">
               <aside className="order-last md:order-first w-full md:w-1/4 md:pt-12">
                 {imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element

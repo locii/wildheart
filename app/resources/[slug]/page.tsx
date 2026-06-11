@@ -51,7 +51,7 @@ export default async function ArticlePage({
     return (
       <PublicLayout nav={nav}>
         <article className="max-w-6xl mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-30">
+          <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-10">
             {imageAndNav}
             <div className="flex-1 min-w-0 md:mt-24">
               <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-4 leading-tight">
@@ -78,7 +78,7 @@ export default async function ArticlePage({
   return (
     <PublicLayout nav={nav}>
       <article className="max-w-6xl mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-30">
+        <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-10">
           {imageAndNav}
           <div className="flex-1 min-w-0 md:mt-24">
             {article.content ? (

@@ -14,11 +14,11 @@ export function NavSlideOut({ items }: { items: NavItem[] }) {
       <button
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="no-theme-link flex flex-col gap-2"
+        className="no-theme-link flex flex-col gap-2 cursor-pointer group"
       >
-        <span className="block w-10 h-0.5 bg-white" />
-        <span className="block w-10 h-0.5 bg-white" />
-        <span className="block w-10 h-0.5 bg-white" />
+       <span className="block w-10 h-px bg-white group-hover:bg-amber-600 transition-colors" />
+  <span className="block w-10 h-px bg-white group-hover:bg-amber-600 transition-colors mt-1" />
+
       </button>
 
       {/* Overlay */}
@@ -31,11 +31,11 @@ export function NavSlideOut({ items }: { items: NavItem[] }) {
 
       {/* Slide-out panel */}
       <div
-        className="fixed top-4 bottom-0 right-4 z-50 w-full max-w-sm rounded-xl bg-white shadow-2xl transition-transform duration-300"
+        className="fixed top-4 bottom-0 right-4 z-100 w-full max-w-sm rounded-xl bg-white shadow-2xl transition-transform duration-300"
         style={{ transform: open ? "translateX(0)" : "translateX(calc(100% + 1rem))" }}
       >
         <div className="flex flex-col h-full overflow-y-auto">
-          <div className="flex justify-end px-4 py-5 border-b border-gray-100">
+          <div className="flex justify-end px-4 py-5">
             <button
               onClick={() => setOpen(false)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -45,7 +45,7 @@ export function NavSlideOut({ items }: { items: NavItem[] }) {
             </button>
           </div>
 
-          <nav className="flex-1 px-4 py-4">
+          <nav className="flex-1 px-4 py-4 -mt-10">
             <ul className="space-y-0.5">
               <li>
                 <Link
