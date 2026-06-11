@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
 import { Mail, Phone } from "lucide-react";
+import type { ContactSubmission } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function ContactSubmissionsPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  const submissions = data ?? [];
+  const submissions = (data ?? []) as ContactSubmission[];
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

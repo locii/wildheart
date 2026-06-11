@@ -187,7 +187,11 @@ export async function POST(req: NextRequest) {
   };
 
   // Auto-send booking confirmation (fire and forget — don't block the response)
-  dispatch(supabase, "booking", apptWithRelations, { manageUrl, intakeUrl }).catch(console.error);
+  dispatch(supabase, "booking", apptWithRelations, {
+    channels: ["email", ...(client.phone ? ["sms" as const] : [])],
+    manageUrl,
+    intakeUrl,
+  }).catch(console.error);
 
   // Send intake invite directly (intake is not logged in notifications table)
   if (isNewClient && intakeUrl) {

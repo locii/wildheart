@@ -43,7 +43,6 @@ export async function sendSms(
       body = `Hi ${client.first_name}, your ${apptType.name} at ${where} is confirmed for ${date} at ${time}. Manage: ${manageUrl}`;
       break;
     }
-      break;
     case "cancellation":
       body = `Hi ${client.first_name}, your ${apptType.name} on ${date} at ${time} has been cancelled. – Wildheart Psychotherapy`;
       break;

@@ -151,6 +151,16 @@ export type Article = {
   updated_at: string;
 };
 
+export type ContactSubmission = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  read_at: string | null;
+  created_at: string;
+};
+
 export type NavItem = {
   label: string;
   href?: string;
