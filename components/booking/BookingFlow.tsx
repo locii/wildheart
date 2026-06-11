@@ -58,24 +58,24 @@ export function BookingFlow({
   const stepIdx = STEPS.indexOf(step);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
       {/* Progress bar */}
-      <div className="h-1 bg-gray-100">
+      <div className="h-1 bg-stone-100">
         <div
-          className="h-full bg-gray-900 transition-all duration-300"
+          className="h-full bg-amber-500 transition-all duration-300"
           style={{ width: `${((stepIdx + 1) / STEPS.length) * 100}%` }}
         />
       </div>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-200">
         {stepIdx > 0 && (
-          <button onClick={goBack} className="text-gray-400 hover:text-gray-700 -ml-1 p-1">
+          <button onClick={goBack} className="text-stone-400 hover:text-stone-700 -ml-1 p-1">
             <ChevronLeft className="h-5 w-5" />
           </button>
         )}
-        <span className="text-sm font-medium text-gray-700">{STEP_LABELS[step]}</span>
-        <span className="text-xs text-gray-400 ml-auto">{stepIdx + 1} / {STEPS.length}</span>
+        <span className="text-sm font-medium text-stone-700">{STEP_LABELS[step]}</span>
+        <span className="text-xs text-stone-400 ml-auto">{stepIdx + 1} / {STEPS.length}</span>
       </div>
 
       <div className="p-4">
@@ -158,15 +158,15 @@ function TypeStep({ types, onSelect }: { types: AppointmentType[]; onSelect: (t:
         <button
           key={t.id}
           onClick={() => onSelect(t)}
-          className="w-full text-left p-4 rounded-xl border hover:border-gray-400 active:bg-gray-50 transition-colors"
+          className="w-full text-left p-4 rounded-xl border border-stone-200 hover:border-amber-400 hover:bg-amber-50/50 active:bg-amber-50 transition-colors text-stone-800"
         >
           <div className="font-medium text-sm">{t.name}</div>
           <div className="flex items-center gap-3 mt-1.5">
-            <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1 text-xs text-stone-500">
               <Clock className="h-3 w-3" />{t.duration_minutes} min
             </span>
             {t.price > 0 && (
-              <span className="flex items-center gap-1 text-xs text-gray-400">
+              <span className="flex items-center gap-1 text-xs text-stone-500">
                 <DollarSign className="h-3 w-3" />{t.price}
               </span>
             )}
@@ -219,14 +219,14 @@ function DateStep({
         <button
           onClick={() => setViewMonth((m) => subMonths(m, 1))}
           disabled={!canGoPrev}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded-lg hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-sm font-medium">{format(viewMonth, "MMMM yyyy")}</span>
+        <span className="text-sm font-medium text-stone-800">{format(viewMonth, "MMMM yyyy")}</span>
         <button
           onClick={() => setViewMonth((m) => addMonths(m, 1))}
-          className="p-1.5 rounded-lg hover:bg-gray-100"
+          className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-600"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -235,7 +235,7 @@ function DateStep({
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-gray-400 py-1">{d}</div>
+          <div key={d} className="text-center text-[10px] font-medium text-stone-400 py-1">{d}</div>
         ))}
       </div>
 
@@ -253,10 +253,10 @@ function DateStep({
               disabled={isPast || !isAvailable}
               className={`
                 aspect-square rounded-lg text-sm font-medium transition-colors mx-0.5
-                ${isPast ? "text-gray-200 cursor-not-allowed" : ""}
-                ${!isPast && !isAvailable ? "text-gray-300 cursor-not-allowed" : ""}
-                ${isAvailable && !isPast ? "hover:bg-gray-900 hover:text-white active:scale-95" : ""}
-                ${isSameDay(day, new Date()) ? "ring-1 ring-gray-300" : ""}
+                ${isPast ? "text-stone-300 cursor-not-allowed" : ""}
+                ${!isPast && !isAvailable ? "text-stone-400 cursor-not-allowed" : ""}
+                ${isAvailable && !isPast ? "text-stone-800 hover:bg-amber-500 hover:text-white active:scale-95" : ""}
+                ${isSameDay(day, new Date()) ? "ring-1 ring-amber-400" : ""}
               `}
             >
               {format(day, "d")}
@@ -298,15 +298,15 @@ function TimeStep({
 
   if (loading) {
     return (
-      <div className="py-8 text-center text-sm text-gray-400">Loading times…</div>
+      <div className="py-8 text-center text-sm text-stone-400">Loading times…</div>
     );
   }
 
   return (
     <div>
-      <p className="text-sm text-gray-500 mb-4">{dateLabel}</p>
+      <p className="text-sm text-stone-500 mb-4">{dateLabel}</p>
       {slots.length === 0 ? (
-        <div className="py-8 text-center text-sm text-gray-400">
+        <div className="py-8 text-center text-sm text-stone-400">
           No times available on this date
         </div>
       ) : (
@@ -315,7 +315,7 @@ function TimeStep({
             <button
               key={slot.start}
               onClick={() => onSelect(slot)}
-              className="py-3 text-sm font-medium rounded-xl border hover:border-gray-900 hover:bg-gray-900 hover:text-white active:scale-95 transition-all"
+              className="py-3 text-sm font-medium text-stone-700 rounded-xl border border-stone-200 hover:border-amber-500 hover:bg-amber-500 hover:text-white active:scale-95 transition-all"
             >
               {slot.label}
             </button>
@@ -426,7 +426,7 @@ function ConfirmStep({
 
   return (
     <div className="space-y-4">
-      <div className="bg-gray-50 rounded-xl p-4 space-y-2.5 text-sm">
+      <div className="bg-stone-50 rounded-xl p-4 space-y-2.5 text-sm border border-stone-100">
         <Row label="Service" value={type.name} />
         <Row label="Location" value={location.name} />
         <Row label="Date" value={format(startDate, "EEEE d MMMM yyyy")} />
@@ -450,8 +450,8 @@ function ConfirmStep({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-gray-400 shrink-0">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <span className="text-stone-500 shrink-0">{label}</span>
+      <span className="text-right font-medium text-stone-800">{value}</span>
     </div>
   );
 }
