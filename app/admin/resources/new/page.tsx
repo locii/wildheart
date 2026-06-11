@@ -11,6 +11,7 @@ const blank: Article = {
   content: null,
   external_url: null,
   image_url: null,
+  published: true,
   published_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
