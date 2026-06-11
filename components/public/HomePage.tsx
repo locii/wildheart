@@ -1,10 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { NavSlideOut } from "./NavSlideOut";
+import { PublicHeader } from "./PublicHeader";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import type { NavItem, Article } from "@/lib/supabase/types";
 
-const HERO_IMAGE = "https://res.cloudinary.com/feelbettr/image/upload/q_72/f_auto/w_1200/1042/balazs-busznyak-T5MCCh70zYE-unsplash_wftlpo";
 const AVATAR_IMAGE = "https://res.cloudinary.com/feelbettr/image/upload/q_70/f_auto/r_0/1314/anthony-avatar-large-anthony-olsen-1080x675_xmdgo9_ynyj1z_5f2vrU_ouiqt4";
 
 type Event = {
@@ -62,40 +61,11 @@ export function HomePage({
 }) {
   return (
     <div className="public-site min-h-screen antialiased">
-      {/* Hero */}
-      <div className="md:p-8">
-        <div
-          className="rounded-t-lg md:min-h-[600px] min-h-[400px] flex items-start justify-start relative"
-          style={{
-            backgroundImage: `url('${HERO_IMAGE}')`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          <div className="absolute md:top-20 top-9 md:right-20 right-10 z-20">
-            <NavSlideOut items={nav} />
-          </div>
-          <div className="relative z-10 p-8">
-            <h1 className="font-light text-6xl md:text-5xl lowercase tracking-widest text-white">
-              <Link href="/" className="hover:text-orange-400 transition-colors">WildHeart</Link>
-              <span className="text-sm block md:hidden uppercase" style={{ letterSpacing: "5.25px" }}>
-                Psychotherapy
-              </span>
-            </h1>
-            <p className="text-sm text-white uppercase tracking-widest mb-8 hidden md:block">
-              <Link href="/services/psychotherapy-and-counselling" className="hover:underline hover:text-orange-400 transition-colors">Psychotherapy</Link>
-              {" - "}
-              <Link href="/services/holotropic-breathwork" className="hover:underline hover:text-orange-400 transition-colors">Holotropic Breathwork</Link>
-              {" - "}
-              <Link href="/services/mens-groups" className="hover:underline hover:text-orange-400 transition-colors">Men's Groups</Link>
-            </p>
-          </div>
-        </div>
-      </div>
+      <PublicHeader nav={nav} />
 
       {/* Main white card */}
       <div className="md:px-8">
-        <main className="rounded-b-lg bg-white p-0 md:p-8 -mt-64 min-h-[40vw] border-t-8 border-gray-100">
+        <main className="rounded-b-lg bg-white p-0 md:p-8 min-h-[40vw] border-t-8 border-gray-100 -mt-28">
 
           {/* Intro section */}
           <div className="py-8">
@@ -108,13 +78,13 @@ export function HomePage({
                       src={AVATAR_IMAGE}
                       alt="Anthony Olsen"
                       fill
-                      className="object-cover"
+                      className="object-cover p-4 bg-white"
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   </div>
                   <Link
                     href="/book/brunswick"
-                    className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-orange-500 text-white border border-orange-500 rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors mb-8"
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-orange-500 text-white! border border-orange-500 rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors mb-8"
                   >
                     Book a Session
                   </Link>
@@ -126,7 +96,7 @@ export function HomePage({
 
                 {/* Right col: intro text */}
                 <div className="md:col-span-8" style={{ marginTop: "-50px" }}>
-                  <div className="pt-4 md:pt-12">
+                  <div className="pt-4 md:pt-12 mt-10">
                     {introContent ? (
                       <MarkdownRenderer content={introContent} />
                     ) : (
@@ -186,7 +156,7 @@ export function HomePage({
 
           {/* Resources section */}
           {articles.length > 0 && (
-            <div className="py-16 px-4" style={{ backgroundColor: "rgb(245, 245, 245)" }}>
+            <div className="py-16 px-8" style={{ backgroundColor: "rgb(245, 245, 245)" }}>
               <div className="container mx-auto max-w-6xl">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-8">Resources for therapy</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -267,13 +237,13 @@ export function HomePage({
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href="/book/brunswick"
-                      className="inline-flex items-center px-5 py-2.5 bg-orange-500 text-white rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors"
+                      className="inline-flex items-center px-5 py-2.5 bg-orange-500 text-white! rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors"
                     >
                       Book in Brunswick
                     </Link>
                     <Link
                       href="/book/lorne"
-                      className="inline-flex items-center px-5 py-2.5 bg-orange-500 text-white rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors"
+                      className="inline-flex items-center px-5 py-2.5 bg-orange-500 text-white! rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors"
                     >
                       Book in Lorne
                     </Link>
@@ -359,12 +329,16 @@ function ArticleCard({ article }: { article: Article }) {
       rel={isExternal ? "noopener noreferrer" : undefined}
       className="group block overflow-hidden bg-gray-50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 shadow-sm"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
-          <svg className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4v16m8-8H4" />
-          </svg>
-        </div>
+      <div className="relative aspect-4/3 overflow-hidden bg-gray-200">
+        {article.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={article.image_url}
+            alt=""
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
       </div>
       <div className="p-6">
         <h3 className="text-base font-bold text-black line-clamp-2 mb-3 group-hover:text-orange-600 transition-colors">

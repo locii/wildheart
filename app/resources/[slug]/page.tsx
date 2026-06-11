@@ -30,44 +30,71 @@ export default async function ArticlePage({
   const [article, nav] = await Promise.all([getArticle(slug), getNav()]);
   if (!article) notFound();
 
+  const imageAndNav = article.image_url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <div className="w-full md:w-1/3 shrink-0">
+      <img
+        src={article.image_url}
+        alt=""
+        className="w-full rounded-xl bg-white md:p-4 p-1 shadow"
+      />
+      <Link
+        href="/resources"
+        className="text-sm text-stone-500 hover:text-stone-700 transition-colors mb-8 block mt-4"
+      >
+        ← Back to Resources
+      </Link>
+    </div>
+  ) : null;
+
   if (article.external_url) {
     return (
       <PublicLayout nav={nav}>
-        <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-          <h1 className="text-2xl font-bold text-stone-900 mb-4">{article.title}</h1>
-          {article.excerpt && <p className="text-stone-600 mb-8">{article.excerpt}</p>}
-          <a
-            href={article.external_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition-colors"
-          >
-            Read article →
-          </a>
-        </div>
+        <article className="max-w-6xl mx-auto px-4 py-12">
+          <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-30">
+            {imageAndNav}
+            <div className="flex-1 min-w-0 md:mt-24">
+              <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-4 leading-tight">
+                {article.title}
+              </h1>
+              {article.excerpt && (
+                <p className="text-stone-600 leading-relaxed mb-8">{article.excerpt}</p>
+              )}
+              <a
+                href={article.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white! font-medium rounded-xl hover:bg-amber-600 transition-colors"
+              >
+                Read article →
+              </a>
+            </div>
+          </div>
+        </article>
       </PublicLayout>
     );
   }
 
-  if (!article.content) notFound();
-
   return (
     <PublicLayout nav={nav}>
-      <article className="max-w-3xl mx-auto px-4 py-12">
-        <Link
-          href="/resources"
-          className="text-sm text-stone-500 hover:text-stone-700 transition-colors mb-8 block"
-        >
-          ← Resources
-        </Link>
-        {article.image_url && (
-          <img
-            src={article.image_url}
-            alt=""
-            className="w-full rounded-xl object-cover max-h-80 mb-8"
-          />
-        )}
-        <MarkdownRenderer content={article.content} />
+      <article className="max-w-6xl mx-auto px-4 py-12">
+        <div className="flex flex-col md:flex-row gap-8 items-start -mt-28 relative z-30">
+          {imageAndNav}
+          <div className="flex-1 min-w-0 md:mt-24">
+            {article.content ? (
+              <MarkdownRenderer content={article.content} />
+            ) : (
+              <>
+                <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-4 leading-tight">
+                  {article.title}
+                </h1>
+                {article.excerpt && (
+                  <p className="text-stone-600 leading-relaxed">{article.excerpt}</p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </article>
     </PublicLayout>
   );

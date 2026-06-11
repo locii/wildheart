@@ -146,6 +146,7 @@ export type Article = {
   content: string | null;
   external_url: string | null;
   image_url: string | null;
+  published: boolean;
   published_at: string;
   updated_at: string;
 };

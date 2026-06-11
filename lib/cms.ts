@@ -39,6 +39,7 @@ export async function getArticles(page = 1, perPage = 10): Promise<{ articles: A
   const { data, count } = await db()
     .from("articles")
     .select("*", { count: "exact" })
+    .eq("published", true)
     .order("published_at", { ascending: false })
     .range(from, to);
   return { articles: (data ?? []) as Article[], total: count ?? 0 };

@@ -74,36 +74,52 @@ export async function getAvailableSlots(
     .gte("start_at", dayStart)
     .lte("start_at", dayEnd);
 
-  // Generate slots in 15-min increments
   const windowStart = localTimeToUtc(date, rule.start_time, timezone);
   const windowEnd = localTimeToUtc(date, rule.end_time, timezone);
 
-  const slots: TimeSlot[] = [];
-  let cursor = windowStart;
-
-  while (addMinutes(cursor, duration) <= windowEnd) {
-    const slotEnd = addMinutes(cursor, duration);
-
-    const blockedByOverride = activeOverrides.some((o) => {
+  // Helper: is a candidate start time blocked by override or appointment?
+  const isBlocked = (slotStart: Date): boolean => {
+    const slotEnd = addMinutes(slotStart, duration);
+    const byOverride = activeOverrides.some((o) => {
       if (!o.start_time || !o.end_time) return false;
       const oStart = localTimeToUtc(date, o.start_time, timezone);
       const oEnd = localTimeToUtc(date, o.end_time, timezone);
-      return overlaps(cursor, slotEnd, oStart, oEnd);
+      return overlaps(slotStart, slotEnd, oStart, oEnd);
     });
-
-    const blockedByAppointment = (appointments ?? []).some((a) =>
-      overlaps(cursor, slotEnd, new Date(a.start_at), new Date(a.end_at))
+    const byAppointment = (appointments ?? []).some((a) =>
+      overlaps(slotStart, slotEnd, new Date(a.start_at), new Date(a.end_at))
     );
+    return byOverride || byAppointment;
+  };
 
-    if (!blockedByOverride && !blockedByAppointment) {
+  // Snap cursor to the first whole local hour >= windowStart
+  const localStart = toZonedTime(windowStart, timezone);
+  const startMins = localStart.getMinutes();
+  let cursor = startMins === 0 ? windowStart : addMinutes(windowStart, 60 - startMins);
+
+  const slots: TimeSlot[] = [];
+
+  while (addMinutes(cursor, duration) <= windowEnd) {
+    if (!isBlocked(cursor)) {
+      // On-the-hour slot is free — offer it
       slots.push({
         start: cursor.toISOString(),
-        end: slotEnd.toISOString(),
+        end: addMinutes(cursor, duration).toISOString(),
         label: format(toZonedTime(cursor, timezone), "h:mm a"),
       });
+    } else {
+      // On-the-hour is blocked — try the half-hour as a fallback
+      const half = addMinutes(cursor, 30);
+      if (addMinutes(half, duration) <= windowEnd && !isBlocked(half)) {
+        slots.push({
+          start: half.toISOString(),
+          end: addMinutes(half, duration).toISOString(),
+          label: format(toZonedTime(half, timezone), "h:mm a"),
+        });
+      }
     }
 
-    cursor = addMinutes(cursor, 15);
+    cursor = addMinutes(cursor, 60);
   }
 
   return slots;

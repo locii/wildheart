@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NavSlideOut } from "./NavSlideOut";
+import { PublicHeader } from "./PublicHeader";
 import type { NavItem } from "@/lib/supabase/types";
 
 export function PublicLayout({
@@ -7,51 +7,31 @@ export function PublicLayout({
   nav,
   hero,
   sidebar,
+  imageUrl,
 }: {
   children: React.ReactNode;
   nav: NavItem[];
   hero?: React.ReactNode;
   sidebar?: React.ReactNode;
+  imageUrl?: string;
 }) {
   return (
     <div className="public-site min-h-screen antialiased">
-      {hero ? (
-        hero
-      ) : (
-        <div className="relative px-4 md:px-8 pt-8 pb-0">
-          <div
-            className="relative rounded-t-lg overflow-hidden min-h-80 flex items-start"
-            style={{
-              backgroundColor: "#1e3d58",
-              backgroundImage: "url(https://res.cloudinary.com/feelbettr/image/upload/q_72/f_auto//w_1200/1042/balazs-busznyak-T5MCCh70zYE-unsplash_wftlpo)",
-              backgroundSize: "cover",
-              backgroundPosition: "left top",
-            }}
-          >
-            <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20">
-              <NavSlideOut items={nav} />
-            </div>
-            <div className="relative z-10 p-6 md:p-8">
-              <h1 className="font-light text-4xl md:text-5xl lowercase tracking-widest text-white">
-                <Link href="/" className="text-white! hover:text-orange-400 transition-colors">WildHeart</Link>
-              </h1>
-              <p className="text-sm uppercase tracking-widest hidden md:block" style={{ color: "rgba(255,255,255,0.85)" }}>
-                <Link href="/services/psychotherapy-and-counselling" className="no-theme-link text-white/85 hover:text-orange-400 transition-colors">Psychotherapy</Link>
-                {" - "}
-                <Link href="/services/holotropic-breathwork" className="no-theme-link text-white/85 hover:text-orange-400 transition-colors">Holotropic Breathwork</Link>
-                {" - "}
-                <Link href="/services/mens-groups" className="no-theme-link text-white/85 hover:text-orange-400 transition-colors">Men&apos;s Groups</Link>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {hero ?? <PublicHeader nav={nav} />}
 
       <div className="px-4 md:px-8">
-        <main className="rounded-b-lg bg-white min-h-[60vh]">
-          {sidebar ? (
-            <div className="flex flex-col md:flex-row">
-              <aside className="order-last md:order-first w-full md:w-72 shrink-0 border-t md:border-t-0 md:border-r border-stone-100 p-6 md:pt-12">
+        <main className="rounded-b-lg bg-white min-h-[60vh] border-t-12 border-slate-100 px-8">
+          {sidebar|| imageUrl ? (
+            <div className="flex flex-col md:flex-row max-w-5xl">
+              <aside className="order-last md:order-first w-full md:w-1/4 md:pt-12">
+                {imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="w-full rounded-xl object-cover mb-6"
+                  />
+                )}
                 {sidebar}
               </aside>
               <div className="order-first md:order-last flex-1 min-w-0">{children}</div>

@@ -258,3 +258,6 @@ insert into articles (slug, title, excerpt, published_at) values
 ('healthy-masculinity-the-power-of-mens-groups-in-collective-healing', 'Healthy Masculinity: The Power of Men''s Groups in Collective Healing', 'The transformative role of men''s groups in fostering healthy masculinity and collective healing.', now()),
 ('holotropic-breathwork-its-potential-life-changing-impact', 'Holotropic Breathwork & its potential life changing impact', 'Holotropic breathwork — a therapy technique offering a unique method to achieve heightened self-awareness and personal growth.', now())
 on conflict (slug) do nothing;
+
+-- Add published field to articles (run if column doesn't exist)
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT true;

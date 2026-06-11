@@ -20,6 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     content: string;
     external_url: string;
     image_url: string;
+    published: boolean;
     published_at: string;
   }>;
   const { data, error } = await db()

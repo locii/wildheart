@@ -10,10 +10,12 @@ import { formatDistanceToNow } from "date-fns";
 type PageRow = { slug: string; title: string; updated_at: string };
 type TreeNode = { page: PageRow; children: TreeNode[] };
 
-function buildTree(pages: PageRow[]): TreeNode[] {
+function buildTree(pages: PageRow[], navOrder: Map<string, number>): TreeNode[] {
+  // Sort alphabetically first so parent slugs always precede children
   const sorted = [...pages].sort((a, b) => a.slug.localeCompare(b.slug));
   const nodeMap = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];
+
   for (const page of sorted) {
     const node: TreeNode = { page, children: [] };
     nodeMap.set(page.slug, node);
@@ -27,7 +29,23 @@ function buildTree(pages: PageRow[]): TreeNode[] {
       else roots.push(node);
     }
   }
-  return roots;
+
+  const navIdx = (slug: string) => {
+    // "home" slug lives at "/" on the public site
+    const href = slug === "home" ? "/" : "/" + slug;
+    return navOrder.get(href) ?? Infinity;
+  };
+
+  const byNav = (a: TreeNode, b: TreeNode) => {
+    const ai = navIdx(a.page.slug);
+    const bi = navIdx(b.page.slug);
+    return ai !== bi ? ai - bi : a.page.slug.localeCompare(b.page.slug);
+  };
+
+  const sortNodes = (nodes: TreeNode[]): TreeNode[] =>
+    nodes.sort(byNav).map((n) => ({ ...n, children: sortNodes(n.children) }));
+
+  return sortNodes(roots);
 }
 
 function PageItem({ page }: { page: PageRow }) {
@@ -69,7 +87,7 @@ function PageTree({ nodes, depth = 0 }: { nodes: TreeNode[]; depth?: number }) {
   );
 }
 
-export function PageList({ pages }: { pages: PageRow[] }) {
+export function PageList({ pages, navOrder = new Map() }: { pages: PageRow[]; navOrder?: Map<string, number> }) {
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
@@ -79,7 +97,7 @@ export function PageList({ pages }: { pages: PageRow[] }) {
       )
     : null;
 
-  const tree = buildTree(pages);
+  const tree = buildTree(pages, navOrder);
 
   return (
     <div>

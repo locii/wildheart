@@ -33,15 +33,9 @@ export default async function CmsPage({
   const sidebar = page.sidebar_block ? <SidebarBlock block={page.sidebar_block} /> : undefined;
 
   return (
-    <PublicLayout nav={nav} sidebar={sidebar}>
+    <PublicLayout nav={nav} sidebar={sidebar} imageUrl={page.image_url ?? undefined}>
       <article className="max-w-3xl mx-auto px-4 py-12">
-        {page.image_url && (
-          <img
-            src={page.image_url}
-            alt=""
-            className="w-full rounded-xl object-cover max-h-80 mb-8"
-          />
-        )}
+        
         {page.content ? (
           <MarkdownRenderer content={page.content} />
         ) : (

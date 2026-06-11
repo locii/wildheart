@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     content?: string;
     external_url?: string;
     image_url?: string;
+    published?: boolean;
     published_at?: string;
   };
   const { data, error } = await db()

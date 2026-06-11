@@ -23,6 +23,7 @@ export function ArticleEditor({ article, isNew = false }: { article: Article; is
   const [externalUrl, setExternalUrl] = useState(article.external_url ?? "");
   const [imageUrl, setImageUrl] = useState(article.image_url ?? "");
   const [mode, setMode] = useState<Mode>(article.external_url ? "external" : "full");
+  const [published, setPublished] = useState(article.published ?? true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -39,6 +40,7 @@ export function ArticleEditor({ article, isNew = false }: { article: Article; is
       content: mode === "full" ? content : null,
       external_url: mode === "external" ? externalUrl : null,
       image_url: imageUrl || null,
+      published,
     };
     if (isNew) {
       const res = await fetch("/api/cms/articles", {
@@ -163,6 +165,17 @@ export function ArticleEditor({ article, isNew = false }: { article: Article; is
       )}
 
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setPublished((p) => !p)}
+          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+            published
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-muted text-muted-foreground border-input"
+          }`}
+        >
+          {published ? "Published" : "Draft"}
+        </button>
         <Button onClick={save} disabled={saving || !title}>
           {saving ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>

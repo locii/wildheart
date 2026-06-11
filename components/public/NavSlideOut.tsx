@@ -14,7 +14,7 @@ export function NavSlideOut({ items }: { items: NavItem[] }) {
       <button
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="no-theme-link flex flex-col gap-2 p-2"
+        className="no-theme-link flex flex-col gap-2"
       >
         <span className="block w-10 h-0.5 bg-white" />
         <span className="block w-10 h-0.5 bg-white" />
@@ -47,6 +47,16 @@ export function NavSlideOut({ items }: { items: NavItem[] }) {
 
           <nav className="flex-1 px-4 py-4">
             <ul className="space-y-0.5">
+              <li>
+                <Link
+                    href="/"
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-gray-800 font-medium hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    Home
+                  </Link>      
+                    
+
+              </li>
               {items.map((item) =>
                 item.children ? (
                   <li key={item.label}>
