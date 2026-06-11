@@ -18,6 +18,7 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
   const [imageUrl, setImageUrl] = useState(page.image_url ?? "");
   const [sidebarBlockId, setSidebarBlockId] = useState(page.sidebar_block_id ?? "");
   const [footerBlockId, setFooterBlockId] = useState(page.footer_block_id ?? "");
+  const [asideClass, setAsideClass] = useState(page.aside_class ?? "");
   const [content, setContent] = useState(page.content ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -34,6 +35,7 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
         image_url: imageUrl || null,
         sidebar_block_id: sidebarBlockId || null,
         footer_block_id: footerBlockId || null,
+        aside_class: asideClass || null,
       }),
     });
     setSaving(false);
@@ -120,6 +122,15 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Aside CSS classes</Label>
+        <Input
+          value={asideClass}
+          onChange={(e) => setAsideClass(e.target.value)}
+          placeholder="CSS class name, e.g. aside-booking"
+        />
       </div>
 
       <div className="space-y-1.5">

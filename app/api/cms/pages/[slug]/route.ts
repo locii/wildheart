@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const body = await req.json() as Partial<{ title: string; content: string; meta_description: string; image_url: string; sidebar_block_id: string | null; footer_block_id: string | null }>;
+  const body = await req.json() as Partial<{ title: string; content: string; meta_description: string; image_url: string; sidebar_block_id: string | null; footer_block_id: string | null; aside_class: string | null }>;
   const { data, error } = await db()
     .from("pages")
     .update({ ...body, updated_at: new Date().toISOString() })
