@@ -47,6 +47,7 @@ export async function dispatch(
       channel,
       sent_at: status === "sent" ? new Date().toISOString() : null,
       status,
+      error: errorMsg ?? null,
     });
   }
 }

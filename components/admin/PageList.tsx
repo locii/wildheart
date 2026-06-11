@@ -52,7 +52,9 @@ function PageItem({ page }: { page: PageRow }) {
   return (
     <div className="bg-card border rounded-xl px-4 py-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{page.title}</p>
+        <Link href={`/admin/pages/${encodeURIComponent(page.slug)}`} className="font-medium text-sm truncate hover:underline block">
+          {page.title}
+        </Link>
         <p className="text-xs text-muted-foreground">/{page.slug}</p>
       </div>
       <span className="text-xs text-muted-foreground shrink-0">

@@ -107,6 +107,7 @@ export type Notification = {
   channel: "email" | "sms";
   sent_at: string | null;
   status: "pending" | "sent" | "failed" | "skipped";
+  error: string | null;
   created_at: string;
 };
 

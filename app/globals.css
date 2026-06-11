@@ -113,6 +113,9 @@
   html {
     @apply font-sans;
   }
+  input, textarea, select {
+    --tw-ring-offset-color: var(--background);
+  }
 }
 
 /* ── Public site styles ──────────────────────────────────────── */

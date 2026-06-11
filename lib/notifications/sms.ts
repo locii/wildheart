@@ -9,6 +9,13 @@ export interface SmsResult {
   error?: string;
 }
 
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("61")) return `+${digits}`;
+  if (digits.startsWith("0")) return `+61${digits.slice(1)}`;
+  return `+${digits}`;
+}
+
 function getClient() {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
@@ -32,6 +39,8 @@ export async function sendSms(
 
   const twilioClient = getClient();
   if (!twilioClient) return { ok: false, error: "Twilio not configured" };
+
+  const to = toE164(client.phone);
 
   const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, appt.timezone);
   const { manageUrl = "" } = options;
@@ -58,7 +67,7 @@ export async function sendSms(
   }
 
   try {
-    await twilioClient.messages.create({ body, from, to: client.phone });
+    await twilioClient.messages.create({ body, from, to });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };
