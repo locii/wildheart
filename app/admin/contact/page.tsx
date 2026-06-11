@@ -6,7 +6,8 @@ import type { ContactSubmission } from "@/lib/supabase/types";
 export const dynamic = "force-dynamic";
 
 export default async function ContactSubmissionsPage() {
-  const supabase = createServiceClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceClient() as any;
   const { data } = await supabase
     .from("contact_submissions")
     .select("*")
