@@ -11,6 +11,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (process.env.REMINDERS_ENABLED !== "true") {
+    return NextResponse.json({ message: "Reminders disabled" });
+  }
+
   const supabase = createServiceClient();
   const now = new Date();
 
