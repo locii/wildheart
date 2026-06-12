@@ -98,14 +98,35 @@ export function BookingFlow({
       </div>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-200">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-stone-200 min-h-[44px]">
         {stepIdx > 0 && (
-          <button onClick={goBack} className="text-stone-400 hover:text-stone-700 -ml-1 p-1">
+          <button onClick={goBack} className="text-stone-400 hover:text-stone-700 -ml-1 p-1 shrink-0">
             <ChevronLeft className="h-5 w-5" />
           </button>
         )}
-        <span className="text-sm font-medium text-stone-700">{STEP_LABELS[step]}</span>
-        <span className="text-xs text-stone-400 ml-auto">{stepIdx + 1} / {STEPS.length}</span>
+        <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 text-sm">
+          {selectedLocation && (
+            <>
+              <span className="font-medium text-stone-800">{selectedLocation.name}</span>
+            </>
+          )}
+          {selectedType && (
+            <>
+              <ChevronRight className="h-3.5 w-3.5 text-stone-300 shrink-0" />
+              <span className="font-medium text-stone-800">{selectedType.name}</span>
+            </>
+          )}
+          {selectedDate && selectedSlot && (
+            <>
+              <ChevronRight className="h-3.5 w-3.5 text-stone-300 shrink-0" />
+              <span className="text-stone-500">{format(parseISO(selectedDate), "d MMM")} · {selectedSlot.label}</span>
+            </>
+          )}
+          {!selectedLocation && !selectedType && (
+            <span className="text-stone-500">{STEP_LABELS[step]}</span>
+          )}
+        </div>
+        <span className="text-xs text-stone-400 shrink-0">{stepIdx + 1} / {STEPS.length}</span>
       </div>
 
       <div className="p-4">
