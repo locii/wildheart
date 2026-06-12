@@ -9,6 +9,7 @@ export function PublicLayout({
   sidebar,
   imageUrl,
   asideClassName,
+  className,
 }: {
   children: React.ReactNode;
   nav: NavItem[];
@@ -16,9 +17,10 @@ export function PublicLayout({
   sidebar?: React.ReactNode;
   imageUrl?: string;
   asideClassName?: string;
+  className?: string;
 }) {
   return (
-    <div className="public-site min-h-screen antialiased">
+    <div className={["public-site min-h-screen antialiased", className].filter(Boolean).join(" ")}>
       {hero ?? <PublicHeader nav={nav} />}
 
       <div className="px-4 md:px-8">

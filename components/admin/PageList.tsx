@@ -7,7 +7,7 @@ import { SearchInput } from "./SearchInput";
 import { Pencil, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-type PageRow = { slug: string; title: string; updated_at: string };
+type PageRow = { slug: string; title: string; updated_at: string; is_public: boolean };
 type TreeNode = { page: PageRow; children: TreeNode[] };
 
 function buildTree(pages: PageRow[], navOrder: Map<string, number>): TreeNode[] {
@@ -52,9 +52,16 @@ function PageItem({ page }: { page: PageRow }) {
   return (
     <div className="bg-card border rounded-xl px-4 py-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
-        <Link href={`/admin/pages/${encodeURIComponent(page.slug)}`} className="font-medium text-sm truncate hover:underline block">
-          {page.title}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href={`/admin/pages/${encodeURIComponent(page.slug)}`} className="font-medium text-sm truncate hover:underline">
+            {page.title}
+          </Link>
+          {!page.is_public && (
+            <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded border border-amber-300 text-amber-700 bg-amber-50">
+              Unlisted
+            </span>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">/{page.slug}</p>
       </div>
       <span className="text-xs text-muted-foreground shrink-0">

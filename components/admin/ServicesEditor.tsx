@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Check, X, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Check, X, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import type { AppointmentType } from "@/lib/supabase/types";
 
-type Draft = { name: string; duration_minutes: string; price: string };
+type Draft = { name: string; duration_minutes: string; price: string; slug: string };
 
-const emptyDraft = (): Draft => ({ name: "", duration_minutes: "", price: "" });
+const emptyDraft = (): Draft => ({ name: "", duration_minutes: "", price: "", slug: "" });
 
 export function ServicesEditor() {
   const [types, setTypes] = useState<AppointmentType[]>([]);
@@ -32,7 +32,7 @@ export function ServicesEditor() {
 
   function startEdit(t: AppointmentType) {
     setEditingId(t.id);
-    setEditDraft({ name: t.name, duration_minutes: String(t.duration_minutes), price: String(t.price) });
+    setEditDraft({ name: t.name, duration_minutes: String(t.duration_minutes), price: String(t.price), slug: t.slug ?? "" });
     setAdding(false);
   }
 
@@ -45,6 +45,7 @@ export function ServicesEditor() {
         name: editDraft.name.trim(),
         duration_minutes: parseInt(editDraft.duration_minutes),
         price: parseFloat(editDraft.price),
+        slug: editDraft.slug.trim() || null,
       }),
     });
     setEditingId(null);
@@ -57,6 +58,15 @@ export function ServicesEditor() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: !t.is_active }),
+    });
+    await load();
+  }
+
+  async function togglePublic(t: AppointmentType) {
+    await fetch(`/api/types/${t.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_public: !t.is_public }),
     });
     await load();
   }
@@ -81,6 +91,7 @@ export function ServicesEditor() {
         name: addDraft.name.trim(),
         duration_minutes: parseInt(addDraft.duration_minutes),
         price: parseFloat(addDraft.price),
+        slug: addDraft.slug.trim() || null,
       }),
     });
     setAdding(false);
@@ -112,6 +123,17 @@ export function ServicesEditor() {
                     <Input type="number" value={editDraft.price} onChange={(e) => setEditDraft({ ...editDraft, price: e.target.value })} />
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">URL slug</Label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground shrink-0">/appointments/</span>
+                    <Input
+                      value={editDraft.slug}
+                      onChange={(e) => setEditDraft({ ...editDraft, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })}
+                      placeholder="e.g. breathwork-3-hour"
+                    />
+                  </div>
+                </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" onClick={() => saveEdit(t.id)} disabled={saving || !editDraft.name.trim()}>
                     <Check className="h-3.5 w-3.5 mr-1.5" />Save
@@ -128,14 +150,20 @@ export function ServicesEditor() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm">{t.name}</span>
                     {!t.is_active && <Badge variant="outline" className="text-[10px] py-0">Inactive</Badge>}
+                    {!t.is_public && <Badge variant="outline" className="text-[10px] py-0 border-amber-300 text-amber-700">Admin only</Badge>}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {t.duration_minutes} min · {t.price > 0 ? `$${t.price}` : "Free"}
+                    {t.slug && <span className="ml-2 opacity-60">/appointments/{t.slug}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEdit(t)}>
                     <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground" onClick={() => togglePublic(t)}
+                    title={t.is_public ? "Hide from public" : "Show to public"}>
+                    {t.is_public ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 text-amber-500" />}
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground" onClick={() => toggleActive(t)}
                     title={t.is_active ? "Deactivate" : "Activate"}>
@@ -180,6 +208,17 @@ export function ServicesEditor() {
                 placeholder="0"
                 value={addDraft.price}
                 onChange={(e) => setAddDraft({ ...addDraft, price: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">URL slug</Label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground shrink-0">/appointments/</span>
+              <Input
+                placeholder="e.g. breathwork-3-hour"
+                value={addDraft.slug}
+                onChange={(e) => setAddDraft({ ...addDraft, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })}
               />
             </div>
           </div>

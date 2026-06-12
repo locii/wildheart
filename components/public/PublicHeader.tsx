@@ -6,7 +6,7 @@ const HERO_IMAGE = "https://res.cloudinary.com/feelbettr/image/upload/q_72/f_aut
 
 export function PublicHeader({ nav }: { nav: NavItem[] }) {
   return (
-    <div className="md:px-8 md:pt-8">
+    <div className="public-header md:px-8 md:pt-8">
       <div
         className="rounded-t-lg min-h-100 flex items-start justify-start relative overflow-hidden"
         style={{
@@ -15,6 +15,7 @@ export function PublicHeader({ nav }: { nav: NavItem[] }) {
           backgroundPosition: "center",
         }}
       >
+        <div className="absolute inset-0 bg-black/40 z-0" />
         <div className="absolute md:top-16 top-8 md:right-20 right-10 z-20">
           <NavSlideOut items={nav} />
         </div>

@@ -118,10 +118,14 @@
   }
 
   .highlight-block img {
-  @apply shadow-xl;
-  background:#fff;
-  padding:8px
-}
+    @apply shadow-xl;
+    background:#fff;
+    padding:8px
+  }
+
+   .page-booking .public-header > div {
+    min-height: 240px !important;
+  }
 }
 
 /* ── Public site styles ──────────────────────────────────────── */

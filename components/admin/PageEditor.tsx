@@ -19,6 +19,7 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
   const [sidebarBlockId, setSidebarBlockId] = useState(page.sidebar_block_id ?? "");
   const [footerBlockId, setFooterBlockId] = useState(page.footer_block_id ?? "");
   const [asideClass, setAsideClass] = useState(page.aside_class ?? "");
+  const [isPublic, setIsPublic] = useState(page.is_public ?? true);
   const [content, setContent] = useState(page.content ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -36,6 +37,7 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
         sidebar_block_id: sidebarBlockId || null,
         footer_block_id: footerBlockId || null,
         aside_class: asideClass || null,
+        is_public: isPublic,
       }),
     });
     setSaving(false);
@@ -68,6 +70,15 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
         >
           View →
         </a>
+        <label className="flex items-center gap-2 ml-auto cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm text-muted-foreground">{isPublic ? "Public" : "Unlisted"}</span>
+        </label>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

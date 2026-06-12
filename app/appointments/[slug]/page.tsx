@@ -54,7 +54,7 @@ export default async function AppointmentsPage({
   const subtitle = location?.name;
 
   return (
-    <PublicLayout nav={nav} sidebar={sidebar} asideClassName={["aside-booking", cmsPage?.aside_class].filter(Boolean).join(" ")}>
+    <PublicLayout nav={nav} sidebar={sidebar} className="page-booking" asideClassName={["aside-booking", cmsPage?.aside_class].filter(Boolean).join(" ")}>
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-stone-900">{title}</h1>

@@ -20,6 +20,7 @@ export type AppointmentType = {
   price: number;
   location_id: string | null;
   is_active: boolean;
+  is_public: boolean;
   sort_order: number;
 };
 
@@ -133,6 +134,7 @@ export type Page = {
   sidebar_block_id: string | null;
   footer_block_id: string | null;
   aside_class: string | null;
+  is_public: boolean;
   updated_at: string;
 };
 
