@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Page, PageWithBlocks, Article, NavItem, SidebarBlock, Menu, MenuWithItems } from "@/lib/supabase/types";
 
@@ -51,25 +52,33 @@ export async function getArticle(slug: string): Promise<Article | null> {
 }
 
 // ─── Articles by parent slug prefix ───────────────────────────────────────────
-export async function getArticlesByParent(parentSlug: string, limit = 6): Promise<Article[]> {
-  const { data } = await db()
-    .from("articles")
-    .select("*")
-    .eq("published", true)
-    .order("published_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as Article[];
-}
+export const getArticlesByParent = unstable_cache(
+  async (_parentSlug: string, limit = 6): Promise<Article[]> => {
+    const { data } = await db()
+      .from("articles")
+      .select("*")
+      .eq("published", true)
+      .order("published_at", { ascending: false })
+      .limit(limit);
+    return (data ?? []) as Article[];
+  },
+  ["articles-by-parent"],
+  { revalidate: 300 }
+);
 
-export async function getPagesByParent(parentSlug: string, limit = 12): Promise<Page[]> {
-  const { data } = await db()
-    .from("pages")
-    .select("*")
-    .like("slug", `${parentSlug}/%`)
-    .eq("is_public", true)
-    .order("slug");
-  return ((data ?? []) as Page[]).slice(0, limit);
-}
+export const getPagesByParent = unstable_cache(
+  async (parentSlug: string, limit = 12): Promise<Page[]> => {
+    const { data } = await db()
+      .from("pages")
+      .select("*")
+      .like("slug", `${parentSlug}/%`)
+      .eq("is_public", true)
+      .order("slug");
+    return ((data ?? []) as Page[]).slice(0, limit);
+  },
+  ["pages-by-parent"],
+  { revalidate: 300 }
+);
 
 // ─── Menus ────────────────────────────────────────────────────────────────────
 export async function getMenus(): Promise<Menu[]> {

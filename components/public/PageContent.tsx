@@ -42,18 +42,18 @@ export async function PageContent({ content }: { content: string }) {
       // {%article-grid|source:pages|parent:services|limit:6%}
       if (shortcode.type === "article-grid") {
         const limit = parseInt(shortcode.params.limit ?? "6", 10);
+        const cols = parseInt(shortcode.params.cols ?? "3", 10);
         const source = shortcode.params.source ?? "articles";
         if (source === "pages" && shortcode.params.parent) {
           const items = await getPagesByParent(shortcode.params.parent, limit);
-          return <ContentGrid key={seg.raw} items={items.map((p) => ({ title: p.title, href: `/${p.slug}`, excerpt: p.meta_description ?? undefined, image: p.image_url ?? undefined }))} />;
+          return <ContentGrid key={seg.raw} cols={cols} items={items.map((p) => ({ title: p.title, href: `/${p.slug}`, excerpt: p.meta_description ?? undefined, image: p.image_url ?? undefined }))} />;
         }
         if (source === "articles" && shortcode.params.parent) {
           const items = await getArticlesByParent(shortcode.params.parent, limit);
-          return <ContentGrid key={seg.raw} items={items.map((a) => ({ title: a.title, href: a.slug ? `/resources/${a.slug}` : "#", excerpt: a.excerpt ?? undefined, image: a.image_url ?? undefined }))} />;
+          return <ContentGrid key={seg.raw} cols={cols} items={items.map((a) => ({ title: a.title, href: a.slug ? `/resources/${a.slug}` : "#", excerpt: a.excerpt ?? undefined, image: a.image_url ?? undefined }))} />;
         }
-        // default: recent articles
         const { articles } = await getArticles(1, limit);
-        return <ContentGrid key={seg.raw} items={articles.map((a) => ({ title: a.title, href: a.slug ? `/resources/${a.slug}` : "#", excerpt: a.excerpt ?? undefined, image: a.image_url ?? undefined }))} />;
+        return <ContentGrid key={seg.raw} cols={cols} items={articles.map((a) => ({ title: a.title, href: a.slug ? `/resources/${a.slug}` : "#", excerpt: a.excerpt ?? undefined, image: a.image_url ?? undefined }))} />;
       }
 
       return null;

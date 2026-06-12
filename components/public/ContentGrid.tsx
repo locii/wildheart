@@ -8,11 +8,19 @@ type GridItem = {
   image?: string;
 };
 
-export function ContentGrid({ items }: { items: GridItem[] }) {
+const colsClass: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+  4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+};
+
+export function ContentGrid({ items, cols = 3 }: { items: GridItem[]; cols?: number }) {
   if (!items.length) return null;
+  const grid = colsClass[cols] ?? colsClass[3];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 my-8">
+    <div className={`grid ${grid} gap-5 my-8`}>
       {items.map((item) => (
         <Link
           key={item.href}
