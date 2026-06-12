@@ -34,9 +34,18 @@ export function ManageActions({
 
   if (cancelled) {
     return (
-      <div className="text-center py-4">
-        <p className="text-sm text-gray-500 mb-4">Your appointment has been cancelled.</p>
-        <p className="text-xs text-gray-400">A confirmation will be sent to your email.</p>
+      <div className="text-center py-4 space-y-4">
+        <div>
+          <p className="text-sm text-gray-800 mb-1">Your appointment has been cancelled.</p>
+          <p className="text-xs text-gray-400">A confirmation will be sent to your email.</p>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
+          onClick={() => router.push("/appointments")}
+        >
+          Book a new appointment
+        </Button>
       </div>
     );
   }
@@ -48,14 +57,14 @@ export function ManageActions({
       <div className="space-y-3">
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full text-black bg-white cursor-pointer"
           onClick={() => router.push(`/manage/${token}/reschedule`)}
         >
           Reschedule appointment
         </Button>
         <Button
           variant="outline"
-          className="w-full text-red-600 hover:text-red-700 hover:border-red-300"
+          className="w-full text-black bg-white cursor-pointer"
           onClick={() => setCancelOpen(true)}
         >
           Cancel appointment
@@ -63,19 +72,24 @@ export function ManageActions({
       </div>
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <DialogContent className="max-w-sm mx-4">
+        <DialogContent className="max-w-sm mx-4 bg-white text-gray-900 border border-gray-200 shadow-xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Cancel appointment?</DialogTitle>
+            <DialogTitle className="text-gray-900 text-base font-semibold">Cancel appointment?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
             Your {appointment.type.name} on {format(start, "d MMMM")} at {format(start, "h:mm a")} will be cancelled.
           </p>
           <div className="flex gap-2 mt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setCancelOpen(false)}>
+            <Button
+              variant="outline"
+              className="flex-1 bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+              onClick={() => setCancelOpen(false)}
+            >
               Keep it
             </Button>
             <Button
-              className="flex-1 bg-red-600 hover:bg-red-700"
+              variant="outline"
+              className="flex-1 bg-white text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
               onClick={cancel}
               disabled={cancelling}
             >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Check, X, Trash2, Plus } from "lucide-react";
+import { Pencil, Check, X, Trash2, Plus, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -170,6 +170,22 @@ export function LocationsEditor() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-8 w-8 p-0 ${l.is_active ? "text-green-500 hover:text-green-400" : "text-muted-foreground hover:text-foreground"}`}
+                      title={l.is_active ? "Visible — click to hide" : "Hidden — click to show"}
+                      onClick={async () => {
+                        await fetch(`/api/locations/${l.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ is_active: !l.is_active }),
+                        });
+                        await load();
+                      }}
+                    >
+                      {l.is_active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    </Button>
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEdit(l)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>

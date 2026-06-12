@@ -1,3 +1,4 @@
+import React from "react";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -23,7 +24,8 @@ export default async function ManagePage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = tokenRow as any;
   if (!row) return <ErrorPage message="This link is invalid or has already been used." />;
-  if (new Date(row.expires_at) < new Date()) {
+  const isExpired = new Date(row.expires_at) < new Date();
+  if (isExpired && process.env.NODE_ENV !== "development") {
     return <ErrorPage message="This link has expired. Please contact us to make changes." />;
   }
 
@@ -38,11 +40,13 @@ export default async function ManagePage({
 
   if (appt.cancelled_at) {
     return (
-      <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <AlertCircle className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-        <h1 className="text-lg font-semibold mb-1">Appointment cancelled</h1>
-        <p className="text-sm text-gray-500">This appointment has already been cancelled.</p>
-      </div>
+      <PageShell>
+        <div className="text-center py-4">
+          <AlertCircle className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+          <h1 className="text-lg font-semibold mb-1">Appointment cancelled</h1>
+          <p className="text-sm text-gray-400">This appointment has already been cancelled.</p>
+        </div>
+      </PageShell>
     );
   }
 
@@ -51,17 +55,17 @@ export default async function ManagePage({
   const isPast = new Date(appt.end_at) < new Date();
 
   return (
-    <div className="max-w-md mx-auto px-4 py-10">
-      <div className="text-center mb-6">
-        <h1 className="text-xl font-semibold">Your appointment</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Wildheart Psychotherapy</p>
+    <PageShell>
+      <div className="text-center mb-7">
+        <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Wildheart Psychotherapy</p>
+        <h1 className="text-xl font-semibold text-gray-900">Your appointment</h1>
       </div>
 
-      <div className="bg-white border rounded-2xl overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b">
-          <div className="font-medium">{appt.type.name}</div>
+      <div className="rounded-2xl border border-gray-100 overflow-hidden mb-5 shadow-sm">
+        <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
+          <div className="font-medium text-gray-900">{appt.type.name}</div>
         </div>
-        <div className="px-5 py-4 space-y-3 text-sm">
+        <div className="px-5 py-4 space-y-3.5 text-sm">
           <div className="flex items-center gap-3 text-gray-600">
             <CalendarDays className="h-4 w-4 text-gray-400 shrink-0" />
             {format(start, "EEEE d MMMM yyyy")}
@@ -82,16 +86,34 @@ export default async function ManagePage({
       ) : (
         <ManageActions token={token} appointment={appt} />
       )}
+    </PageShell>
+  );
+}
+
+const BG =
+  "https://res.cloudinary.com/feelbettr/image/upload/q_72/f_auto//w_1200/1042/balazs-busznyak-T5MCCh70zYE-unsplash_wftlpo";
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="min-h-screen w-full flex items-center justify-center bg-cover bg-center px-4 py-12"
+      style={{ backgroundImage: `url(${BG})` }}
+    >
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl px-8 py-10">
+        {children}
+      </div>
     </div>
   );
 }
 
 function ErrorPage({ message }: { message: string }) {
   return (
-    <div className="max-w-md mx-auto px-4 py-12 text-center">
-      <AlertCircle className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-      <h1 className="text-lg font-semibold mb-1">Link unavailable</h1>
-      <p className="text-sm text-gray-500">{message}</p>
-    </div>
+    <PageShell>
+      <div className="text-center">
+        <AlertCircle className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+        <h1 className="text-lg font-semibold mb-1">Link unavailable</h1>
+        <p className="text-sm text-gray-400">{message}</p>
+      </div>
+    </PageShell>
   );
 }

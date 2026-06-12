@@ -18,7 +18,8 @@ export async function GET(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = tokenRow as any;
   if (!row) return NextResponse.json({ error: "Invalid link" }, { status: 404 });
-  if (new Date(row.expires_at) < new Date()) {
+  const isExpired = new Date(row.expires_at) < new Date();
+  if (isExpired && process.env.NODE_ENV !== "development") {
     return NextResponse.json({ error: "This link has expired" }, { status: 410 });
   }
 
