@@ -173,6 +173,41 @@ export type NavItem = {
   children?: NavItem[];
 };
 
+export type MenuItemType = "page" | "article" | "appointment_type" | "url";
+
+export type MenuItem = {
+  id: string;
+  menu_id: string;
+  parent_id: string | null;
+  position: number;
+  label: string;
+  type: MenuItemType;
+  page_slug: string | null;
+  article_id: string | null;
+  appointment_type_id: string | null;
+  url: string | null;
+  description: string | null;
+  image_url: string | null;
+  open_in_new_tab: boolean;
+  created_at: string;
+};
+
+export type MenuItemWithRef = MenuItem & {
+  page: { slug: string; title: string } | null;
+  article: { id: string; slug: string | null; title: string } | null;
+  appointment_type: { id: string; name: string } | null;
+};
+
+export type Menu = {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MenuWithItems = Menu & { items: MenuItemWithRef[] };
+
 // ─── Insert types ─────────────────────────────────────────────────────────────
 
 export type LocationInsert = Omit<Location, "id" | "created_at">;

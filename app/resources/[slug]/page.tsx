@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getArticle, getNav } from "@/lib/cms";
+import { getArticle, getMenuNav } from "@/lib/cms";
 import { PublicLayout } from "@/components/public/PublicLayout";
 import { MarkdownRenderer } from "@/components/public/MarkdownRenderer";
 
@@ -27,7 +27,7 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [article, nav] = await Promise.all([getArticle(slug), getNav()]);
+  const [article, nav] = await Promise.all([getArticle(slug), getMenuNav("main-nav")]);
   if (!article) notFound();
 
   const imageAndNav = article.image_url ? (

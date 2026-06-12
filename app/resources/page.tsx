@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getArticles, getNav } from "@/lib/cms";
+import { getArticles, getMenuNav } from "@/lib/cms";
 import { PublicLayout } from "@/components/public/PublicLayout";
 import { ExternalLink } from "lucide-react";
 
@@ -20,7 +20,7 @@ export default async function ResourcesPage({
 }) {
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1") || 1);
-  const [{ articles, total }, nav] = await Promise.all([getArticles(page, PER_PAGE), getNav()]);
+  const [{ articles, total }, nav] = await Promise.all([getArticles(page, PER_PAGE), getMenuNav("main-nav")]);
   const totalPages = Math.ceil(total / PER_PAGE);
 
   return (

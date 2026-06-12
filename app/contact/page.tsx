@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getNav } from "@/lib/cms";
+import { getMenuNav } from "@/lib/cms";
 import { PublicLayout } from "@/components/public/PublicLayout";
 import { ContactForm } from "./ContactForm";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const nav = await getNav();
+  const nav = await getMenuNav("main-nav");
   return (
     <PublicLayout nav={nav}>
       <div className="max-w-2xl mx-auto px-4 py-12">

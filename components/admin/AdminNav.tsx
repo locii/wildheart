@@ -24,7 +24,7 @@ export const groups = [
     label: "Content",
     icon: FileStack,
     href: "/admin/pages",
-    prefix: ["/admin/pages", "/admin/resources", "/admin/sidebar-blocks"],
+    prefix: ["/admin/pages", "/admin/resources", "/admin/sidebar-blocks", "/admin/menus"],
   },
   {
     label: "Settings",

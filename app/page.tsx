@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPage, getNav } from "@/lib/cms";
+import { getPage, getMenuNav } from "@/lib/cms";
 import { PublicLayout } from "@/components/public/PublicLayout";
 import { PageContent } from "@/components/public/PageContent";
 import { SidebarBlock } from "@/components/public/SidebarBlock";
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootPage() {
-  const [page, nav] = await Promise.all([getPage("home"), getNav()]);
+  const [page, nav] = await Promise.all([getPage("home"), getMenuNav("main-nav")]);
   if (!page) notFound();
 
   const sidebar = page.sidebar_block ? <SidebarBlock block={page.sidebar_block} /> : undefined;

@@ -15,6 +15,7 @@ import {
   Layers,
   Code2,
   MessageSquare,
+  Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { groups } from "./AdminNav";
@@ -30,6 +31,7 @@ const subItems: Record<string, { href: string; label: string; icon: React.Elemen
   Content: [
     { href: "/admin/pages", label: "Pages", icon: FileText },
     { href: "/admin/resources", label: "Articles", icon: BookOpen },
+    { href: "/admin/menus", label: "Menus", icon: Menu },
     { href: "/admin/sidebar-blocks", label: "Blocks", icon: PanelRight },
   ],
   Settings: [

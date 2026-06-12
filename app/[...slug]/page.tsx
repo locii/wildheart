@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPage, getNav } from "@/lib/cms";
+import { getPage, getMenuNav } from "@/lib/cms";
 import { PublicLayout } from "@/components/public/PublicLayout";
 import { PageContent } from "@/components/public/PageContent";
 import { SidebarBlock } from "@/components/public/SidebarBlock";
@@ -27,7 +27,7 @@ export default async function CmsPage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-  const [page, nav] = await Promise.all([getPage(slug.join("/")), getNav()]);
+  const [page, nav] = await Promise.all([getPage(slug.join("/")), getMenuNav("main-nav")]);
   if (!page) notFound();
 
   const sidebar = page.sidebar_block ? <SidebarBlock block={page.sidebar_block} /> : undefined;
