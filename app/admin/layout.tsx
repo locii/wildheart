@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { AdminSubNav } from "@/components/admin/AdminSubNav";
 
 export default async function AdminLayout({
   children,
@@ -19,7 +18,6 @@ export default async function AdminLayout({
     <div className="flex min-h-screen bg-muted/50">
       <AdminNav />
       <div className="flex flex-col flex-1 min-w-0">
-        <AdminSubNav />
         <main className="flex-1 pb-24 md:pb-0">
           {children}
         </main>
