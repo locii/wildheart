@@ -9,10 +9,10 @@ export function MarkdownRenderer({ content }: { content: string }) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-6 leading-tight">{children}</h1>
+          <h1 className="text-4xl sm:text-4xl font-bold text-stone-900 mb-6 leading-tight">{children}</h1>
         ),
         h2: ({ children }) => (
-          <h2 className="text-2xl font-semibold text-stone-800 mt-10 mb-4 leading-snug">{children}</h2>
+          <h2 className="text-3xl font-semibold text-stone-800 mt-10 mb-4 leading-snug">{children}</h2>
         ),
         h3: ({ children }) => (
           <h3 className="text-xl font-semibold text-stone-800 mt-8 mb-3">{children}</h3>

@@ -117,7 +117,8 @@
     --tw-ring-offset-color: var(--background);
   }
 
-  .highlight-block img {
+  .highlight-block img,
+  .aside-pages img {
     @apply shadow-xl;
     background:#fff;
     padding:8px
@@ -170,10 +171,15 @@
   font-weight: 300;
 }
 
-.highlight-block {
+.highlight-block,
+.aside-pages {
   margin-top:-100px;
   position:relative;
   z-index: 30;
+}
+
+.page-pages article{
+  margin-top:-60px
 }
 
 
