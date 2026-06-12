@@ -5,7 +5,7 @@ import type { NavItem } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-type PageRow = { slug: string; title: string; updated_at: string };
+type PageRow = { slug: string; title: string; updated_at: string; is_public: boolean };
 
 function flattenNavHrefs(items: NavItem[]): string[] {
   // "home" slug maps to "/" which doesn't appear in the nav — pin it first
@@ -25,7 +25,7 @@ export default async function PagesListPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceClient() as any;
   const [{ data: pages }, nav] = await Promise.all([
-    supabase.from("pages").select("slug, title, updated_at"),
+    supabase.from("pages").select("slug, title, updated_at, is_public"),
     getNav(),
   ]);
 
