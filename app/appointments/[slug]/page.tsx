@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { BookingFlow } from "@/components/booking/BookingFlow";
-import { PublicLayout } from "@/components/public/PublicLayout";
-import { SidebarBlock } from "@/components/public/SidebarBlock";
-import { getNav, getPage } from "@/lib/cms";
+import { BookingShell } from "@/components/booking/BookingShell";
 import type { Location, AppointmentType } from "@/lib/supabase/types";
 
 export default async function AppointmentsPage({
@@ -19,10 +17,9 @@ export default async function AppointmentsPage({
 
   const supabase = createServiceClient();
 
-  const [{ data: locData }, { data: typesData }, nav] = await Promise.all([
+  const [{ data: locData }, { data: typesData }] = await Promise.all([
     supabase.from("locations").select("*"),
     supabase.from("appointment_types").select("*").eq("is_active", true).order("sort_order"),
-    getNav(),
   ]);
 
   const locations = (locData ?? []) as Location[];
@@ -32,9 +29,6 @@ export default async function AppointmentsPage({
   const preselectedType = !location ? types.find((t) => t.slug === slug) : undefined;
 
   if (!location && !preselectedType) notFound();
-
-  const cmsPage = !isEmbed ? await getPage(`appointments/${slug}`) : null;
-  const sidebar = cmsPage?.sidebar_block ? <SidebarBlock block={cmsPage.sidebar_block} /> : undefined;
 
   if (isEmbed) {
     return (
@@ -48,18 +42,16 @@ export default async function AppointmentsPage({
     );
   }
 
-  const title = preselectedType
-    ? preselectedType.name
-    : "Make a booking at Wildheart Psychotherapy";
   const subtitle = location?.name;
 
   return (
-    <PublicLayout nav={nav} sidebar={sidebar} className="page-booking" asideClassName={["aside-booking", cmsPage?.aside_class].filter(Boolean).join(" ")}>
-      <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-stone-900">{title}</h1>
-          {subtitle && <p className="text-sm text-stone-500 mt-0.5">{subtitle}</p>}
-        </div>
+    <BookingShell>
+      <div className="px-8 pt-8 pb-2 text-center">
+        <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Wildheart Psychotherapy</p>
+        <h1 className="text-xl font-semibold text-gray-900">Make a booking</h1>
+        {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}
+      </div>
+      <div className="p-6">
         <BookingFlow
           locations={location ? [location] : locations}
           initialLocation={location}
@@ -68,6 +60,6 @@ export default async function AppointmentsPage({
           embed={false}
         />
       </div>
-    </PublicLayout>
+    </BookingShell>
   );
 }

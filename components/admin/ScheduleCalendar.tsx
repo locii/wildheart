@@ -1195,7 +1195,7 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
               <X className="h-3 w-3" /> Cancel
             </button>
             <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="First name" value={newClient.first_name} onChange={(e) => setNewClient({ ...newClient, first_name: e.target.value })} className="h-8 text-xs" />
+              <Input placeholder="First name oo" value={newClient.first_name} onChange={(e) => setNewClient({ ...newClient, first_name: e.target.value })} className="h-8 text-xs" />
               <Input placeholder="Last name" value={newClient.last_name} onChange={(e) => setNewClient({ ...newClient, last_name: e.target.value })} className="h-8 text-xs" />
             </div>
             <Input placeholder="Email" type="email" value={newClient.email} onChange={(e) => setNewClient({ ...newClient, email: e.target.value })} className="h-8 text-xs" />

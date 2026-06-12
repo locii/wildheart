@@ -104,7 +104,7 @@ export function NavSlideOut({ items }: { items: NavItem[] }) {
 
           <div className="px-4 py-6 border-t border-gray-100 space-y-2">
             <Link
-              href="/appointments/brunswick"
+              href="/appointments"
               onClick={() => setOpen(false)}
               className="block w-full text-center px-4 py-3 bg-orange-500 text-white! font-medium rounded-lg hover:bg-orange-600 transition-colors text-sm uppercase tracking-wide"
             >

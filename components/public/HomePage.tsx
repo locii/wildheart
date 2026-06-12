@@ -236,13 +236,13 @@ export function HomePage({
                   <hr className="my-6 border-gray-200" />
                   <div className="flex flex-wrap gap-3">
                     <Link
-                      href="/book/brunswick"
+                      href="/appointments/brunswick"
                       className="inline-flex items-center px-5 py-2.5 bg-orange-500 text-white! rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors"
                     >
                       Book in Brunswick
                     </Link>
                     <Link
-                      href="/book/lorne"
+                      href="/appointments/lorne"
                       className="inline-flex items-center px-5 py-2.5 bg-orange-500 text-white! rounded-md font-medium text-sm uppercase tracking-wide hover:bg-orange-600 transition-colors"
                     >
                       Book in Lorne

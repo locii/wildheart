@@ -1,34 +1,28 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { BookingFlow } from "@/components/booking/BookingFlow";
-import { PublicLayout } from "@/components/public/PublicLayout";
-import { getNav } from "@/lib/cms";
+import { BookingShell } from "@/components/booking/BookingShell";
 import type { Location, AppointmentType } from "@/lib/supabase/types";
 
 export default async function AppointmentsPage() {
   const supabase = createServiceClient();
 
-  const [{ data: locData }, { data: typesData }, nav] = await Promise.all([
+  const [{ data: locData }, { data: typesData }] = await Promise.all([
     supabase.from("locations").select("*").eq("is_active", true),
     supabase.from("appointment_types").select("*").eq("is_active", true).order("sort_order"),
-    getNav(),
   ]);
 
   const locations = (locData ?? []) as Location[];
   const types = (typesData ?? []) as AppointmentType[];
 
   return (
-    <PublicLayout nav={nav}>
-      <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-stone-900">Make a booking</h1>
-          <p className="text-sm text-stone-500 mt-0.5">Wildheart Psychotherapy</p>
-        </div>
-        <BookingFlow
-          locations={locations}
-          types={types}
-          embed={false}
-        />
+    <BookingShell>
+      <div className="px-8 pt-8 pb-2 text-center">
+        <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Wildheart Psychotherapy</p>
+        <h1 className="text-xl font-semibold text-gray-900">Make a booking</h1>
       </div>
-    </PublicLayout>
+      <div className="p-6">
+        <BookingFlow locations={locations} types={types} embed={false} />
+      </div>
+    </BookingShell>
   );
 }

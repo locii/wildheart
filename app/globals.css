@@ -136,19 +136,30 @@
   background-color: #254D70;
 }
 
-/* Reset Shadcn CSS vars to light values inside the white main area */
+/* Light-theme reset for white cards on dark-themed pages.
+   Apply .theme-light to any white container that hosts Shadcn form components. */
+.theme-light,
 .public-site main {
   color: oklch(0.15 0 0);
-  --foreground:           oklch(0.15 0 0);
-  --card-foreground:      oklch(0.15 0 0);
-  --popover-foreground:   oklch(0.15 0 0);
-  --secondary-foreground: oklch(0.15 0 0);
-  --muted-foreground:     oklch(0.45 0 0);
-  --accent-foreground:    oklch(0.15 0 0);
-  --border:               oklch(0.88 0 0);
-  --input:                oklch(1 0 0);
-  --card:                 oklch(1 0 0);
-  --muted:                oklch(0.96 0 0);
+  /* shadcn :root vars */
+  --foreground:             oklch(0.15 0 0);
+  --card-foreground:        oklch(0.15 0 0);
+  --popover-foreground:     oklch(0.15 0 0);
+  --secondary-foreground:   oklch(0.15 0 0);
+  --muted-foreground:       oklch(0.45 0 0);
+  --accent-foreground:      oklch(0.15 0 0);
+  --border:                 oklch(0.90 0 0);
+  --input:                  oklch(0.88 0 0);
+  --card:                   oklch(1 0 0);
+  --muted:                  oklch(0.96 0 0);
+  /* tailwind @theme --color-* vars (used by border-input, text-foreground etc) */
+  --color-foreground:       oklch(0.15 0 0);
+  --color-border:           oklch(0.90 0 0);
+  --color-input:            oklch(0.88 0 0);
+  --color-muted:            oklch(0.96 0 0);
+  --color-muted-foreground: oklch(0.45 0 0);
+  --color-card:             oklch(1 0 0);
+  --color-card-foreground:  oklch(0.15 0 0);
 }
 
 .public-site h1,

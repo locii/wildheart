@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { BookingShell } from "@/components/booking/BookingShell";
 import type { IntakeQuestion } from "@/lib/supabase/types";
 
 export default function IntakePage() {
@@ -42,61 +43,65 @@ export default function IntakePage() {
 
   if (loading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-12 text-center text-sm text-gray-400">
-        Loading…
-      </div>
+      <BookingShell backHref="/appointments" backLabel="Back to booking">
+        <div className="px-8 py-12 text-center text-sm text-gray-400">Loading…</div>
+      </BookingShell>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-12 text-center">
-        <p className="text-sm text-gray-400">No intake form needed.</p>
-        <Button className="mt-4" onClick={() => router.push(`/appointments/${locationSlug}/success`)}>
-          Continue
-        </Button>
-      </div>
+      <BookingShell backHref="/appointments" backLabel="Back to booking">
+        <div className="px-8 py-12 text-center">
+          <p className="text-sm text-gray-400 mb-4">No intake form needed.</p>
+          <Button onClick={() => router.push(`/appointments/${locationSlug}/success`)}>
+            Continue
+          </Button>
+        </div>
+      </BookingShell>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-8">
-      <h1 className="text-xl font-semibold mb-1">Intake Form</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        Help us prepare for your first session. You can skip this and complete it later.
-      </p>
+    <BookingShell backHref="/appointments" backLabel="Back to booking">
+      <div className="px-8 py-8">
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">Intake Form</h1>
+        <p className="text-sm text-gray-400 mb-6">
+          Help us prepare for your first session. You can skip this and complete it later.
+        </p>
 
-      <div className="space-y-5">
-        {questions.map((q) => (
-          <div key={q.id} className="space-y-1.5">
-            <Label>
-              {q.question}
-              {q.required && <span className="text-red-400 ml-0.5">*</span>}
-            </Label>
-            {q.field_type === "textarea" ? (
-              <Textarea
-                value={answers[q.field_key] ?? ""}
-                onChange={(e) => setAnswers((a) => ({ ...a, [q.field_key]: e.target.value }))}
-                rows={3}
-              />
-            ) : (
-              <Input
-                value={answers[q.field_key] ?? ""}
-                onChange={(e) => setAnswers((a) => ({ ...a, [q.field_key]: e.target.value }))}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+        <div className="space-y-5">
+          {questions.map((q) => (
+            <div key={q.id} className="space-y-1.5">
+              <Label>
+                {q.question}
+                {q.required && <span className="text-red-400 ml-0.5">*</span>}
+              </Label>
+              {q.field_type === "textarea" ? (
+                <Textarea
+                  value={answers[q.field_key] ?? ""}
+                  onChange={(e) => setAnswers((a) => ({ ...a, [q.field_key]: e.target.value }))}
+                  rows={3}
+                />
+              ) : (
+                <Input
+                  value={answers[q.field_key] ?? ""}
+                  onChange={(e) => setAnswers((a) => ({ ...a, [q.field_key]: e.target.value }))}
+                />
+              )}
+            </div>
+          ))}
+        </div>
 
-      <div className="flex gap-3 mt-8">
-        <Button onClick={() => handleSubmit(false)} disabled={submitting} className="flex-1">
-          {submitting ? "Submitting…" : "Submit"}
-        </Button>
-        <Button variant="outline" onClick={() => handleSubmit(true)} disabled={submitting}>
-          Skip
-        </Button>
+        <div className="flex gap-3 mt-8">
+          <Button onClick={() => handleSubmit(false)} disabled={submitting} className="flex-1">
+            {submitting ? "Submitting…" : "Submit"}
+          </Button>
+          <Button variant="outline" onClick={() => handleSubmit(true)} disabled={submitting}>
+            Skip
+          </Button>
+        </div>
       </div>
-    </div>
+    </BookingShell>
   );
 }

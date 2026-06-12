@@ -8,6 +8,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BookingShell } from "@/components/booking/BookingShell";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
 
 interface TimeSlot { start: string; end: string; label: string }
@@ -35,9 +36,15 @@ export default function ReschedulePage() {
       });
   }, [token]);
 
-  if (loading) return <div className="max-w-md mx-auto px-4 py-12 text-center text-sm text-gray-400">Loading…</div>;
+  if (loading) return (
+    <BookingShell backHref={`/manage/${token}`} backLabel="Back">
+      <div className="px-8 py-12 text-center text-sm text-gray-400">Loading…</div>
+    </BookingShell>
+  );
   if (error || !appt) return (
-    <div className="max-w-md mx-auto px-4 py-12 text-center text-sm text-gray-500">{error || "Appointment not found"}</div>
+    <BookingShell backHref="/" backLabel="Back to site">
+      <div className="px-8 py-12 text-center text-sm text-gray-500">{error || "Appointment not found"}</div>
+    </BookingShell>
   );
 
   async function confirm() {
@@ -75,48 +82,55 @@ export default function ReschedulePage() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-8">
-      <button onClick={() => step === "date" ? router.back() : setStep("date")}
-        className="flex items-center gap-1 text-sm text-gray-500 mb-5">
-        <ChevronLeft className="h-4 w-4" />
-        {step === "date" ? "Back" : "Choose another date"}
-      </button>
+    <BookingShell
+      backHref={step === "date" ? `/manage/${token}` : undefined}
+      backLabel={step === "date" ? "Back to appointment" : undefined}
+    >
+      <div className="px-8 py-8">
+        {step !== "date" && (
+          <button onClick={() => setStep("date")}
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 mb-5">
+            <ChevronLeft className="h-4 w-4" />
+            Choose another date
+          </button>
+        )}
 
-      <h1 className="text-xl font-semibold mb-1">Reschedule</h1>
-      <p className="text-sm text-gray-500 mb-6">{appt.type.name} · {appt.location.name}</p>
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">Reschedule</h1>
+        <p className="text-sm text-gray-400 mb-6">{appt.type.name} · {appt.location.name}</p>
 
-      {step === "date" && (
-        <RescheduleDatePicker
-          locationSlug={appt.location.slug}
-          duration={appt.type.duration_minutes}
-          onSelect={(d) => { setDate(d); setStep("time"); }}
-        />
-      )}
+        {step === "date" && (
+          <RescheduleDatePicker
+            locationSlug={appt.location.slug}
+            duration={appt.type.duration_minutes}
+            onSelect={(d) => { setDate(d); setStep("time"); }}
+          />
+        )}
 
-      {step === "time" && (
-        <RescheduleTimePicker
-          locationSlug={appt.location.slug}
-          date={date}
-          duration={appt.type.duration_minutes}
-          onSelect={(s) => { setSlot(s); setStep("confirm"); }}
-        />
-      )}
+        {step === "time" && (
+          <RescheduleTimePicker
+            locationSlug={appt.location.slug}
+            date={date}
+            duration={appt.type.duration_minutes}
+            onSelect={(s) => { setSlot(s); setStep("confirm"); }}
+          />
+        )}
 
-      {step === "confirm" && slot && (
-        <div className="space-y-4">
-          <div className="bg-white border rounded-2xl p-4 text-sm space-y-2">
-            <Row label="New date" value={format(parseISO(date), "EEEE d MMMM yyyy")} />
-            <Row label="New time" value={slot.label} />
-            <Row label="Service" value={appt.type.name} />
-            <Row label="Location" value={appt.location.name} />
+        {step === "confirm" && slot && (
+          <div className="space-y-4">
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm space-y-2">
+              <Row label="New date" value={format(parseISO(date), "EEEE d MMMM yyyy")} />
+              <Row label="New time" value={slot.label} />
+              <Row label="Service" value={appt.type.name} />
+              <Row label="Location" value={appt.location.name} />
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button onClick={confirm} disabled={saving} className="w-full">
+              {saving ? "Rescheduling…" : "Confirm new time"}
+            </Button>
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button onClick={confirm} disabled={saving} className="w-full">
-            {saving ? "Rescheduling…" : "Confirm new time"}
-          </Button>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </BookingShell>
   );
 }
 
