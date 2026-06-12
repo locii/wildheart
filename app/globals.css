@@ -209,6 +209,7 @@
 }
 
 blockquote {
+  margin-top:30px;
     margin-bottom: calc(var(--spacing, .25rem) * 6);
     padding-left: calc(var(--spacing, .25rem) * 12);
     font-size: var(--text-xl, 1.25rem);
@@ -226,16 +227,4 @@ blockquote {
     border-left:0
 }
 
-blockquote:before {
-    content: "";
-    opacity: .6;
-   
-    background-repeat: no-repeat;
-    background-size: contain;
-    width: 32px;
-    height: 32px;
-    margin-bottom: 1rem;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
+

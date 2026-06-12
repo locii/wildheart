@@ -2,11 +2,13 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 export function MarkdownRenderer({ content }: { content: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeRaw]}
       components={{
         h1: ({ children }) => (
           <h1 className="text-4xl sm:text-4xl font-bold text-stone-900 mb-6 leading-tight">{children}</h1>
@@ -46,6 +48,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
         hr: () => <hr className="my-8 border-stone-200" />,
         strong: ({ children }) => <strong className="font-semibold text-stone-900">{children}</strong>,
         em: ({ children }) => <em className="italic text-stone-600">{children}</em>,
+        cite: ({ children }) => <cite className="not-italic text-sm text-stone-500 block text-right mt-1">{children}</cite>,
         code: ({ children, className }) => {
           const isBlock = className?.includes("language-");
           return isBlock ? (
