@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
 import { dispatch } from "@/lib/notifications/dispatch";
-import { createAppointmentToken } from "@/lib/tokens";
+import { createAppointmentToken, buildManageUrl } from "@/lib/tokens";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -63,8 +63,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       ...(body.sendRescheduleSms ? ["sms" as const] : []),
     ];
     const token = await createAppointmentToken(supabase, appt.id, appt.start_at);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-    const manageUrl = `${appUrl}/manage/${token}`;
+    const manageUrl = buildManageUrl(token);
     dispatch(supabase, "reschedule", appt, { channels, manageUrl }).catch(console.error);
   }
 

@@ -15,7 +15,7 @@ function getResend(): Resend {
 }
 const FROM = () => process.env.RESEND_FROM_EMAIL ?? "appointments@yourdomain.com";
 
-export type EmailType = "booking" | "cancellation" | "reschedule" | "reminder_24h" | "reminder_1h" | "intake";
+export type EmailType = "booking" | "cancellation" | "reschedule" | "reminder_24h" | "intake";
 
 export interface EmailResult {
   ok: boolean;
@@ -25,9 +25,14 @@ export interface EmailResult {
 export async function sendEmail(
   type: EmailType,
   appt: AppointmentWithRelations,
-  options: { manageUrl?: string; intakeUrl?: string; oldAppt?: AppointmentWithRelations } = {}
+  options: {
+    manageUrl?: string;
+    intakeUrl?: string;
+    oldAppt?: AppointmentWithRelations;
+    doorCode?: string;
+  } = {}
 ): Promise<EmailResult> {
-  const { manageUrl = "", intakeUrl, oldAppt } = options;
+  const { manageUrl = "", intakeUrl, oldAppt, doorCode } = options;
   const { client, type: apptType, location } = appt;
   const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, appt.timezone);
 
@@ -80,10 +85,8 @@ export async function sendEmail(
       });
       break;
     }
-    case "reminder_24h":
-    case "reminder_1h": {
-      const reminderType = type === "reminder_24h" ? "24h" : "1h";
-      subject = `Reminder: ${apptType.name} ${reminderType === "24h" ? "tomorrow" : "in 1 hour"}`;
+    case "reminder_24h": {
+      subject = `Reminder: ${apptType.name} tomorrow`;
       reactEl = ReminderEmail({
         clientFirstName: client.first_name,
         appointmentType: apptType.name,
@@ -91,7 +94,8 @@ export async function sendEmail(
         date,
         time,
         manageUrl,
-        reminderType,
+        reminderType: "24h",
+        doorCode,
       });
       break;
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { createAppointmentToken } from "@/lib/tokens";
+import { createAppointmentToken, buildManageUrl } from "@/lib/tokens";
 import type { Client, Location, AppointmentType, AppointmentWithRelations } from "@/lib/supabase/types";
 import { dispatch } from "@/lib/notifications/dispatch";
 import { sendEmail } from "@/lib/notifications/email";
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     .eq("id", client.id);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const manageUrl = `${appUrl}/manage/${token}`;
+  const manageUrl = buildManageUrl(token);
   const intakeUrl = isNewClient ? `${appUrl}/appointments/${locationSlug}/intake?appt=${appt.id}` : undefined;
 
   // Build full appointment with relations for notification dispatch

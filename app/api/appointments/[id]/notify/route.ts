@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { dispatch, type NotificationType } from "@/lib/notifications/dispatch";
 import { sendEmail } from "@/lib/notifications/email";
-import { createAppointmentToken } from "@/lib/tokens";
+import { createAppointmentToken, buildManageUrl } from "@/lib/tokens";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -29,10 +29,10 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const appt = data as AppointmentWithRelations;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
   if (body.type === "intake") {
     // Intake doesn't use manage URL, uses intake URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
     const intakeUrl = `${appUrl}/appointments/${appt.location.slug}/intake?appt=${appt.id}`;
     await sendEmail("intake", appt, { intakeUrl });
     return NextResponse.json({ ok: true });
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   // For all other types, generate a fresh manage token
   const token = await createAppointmentToken(supabase, appt.id, appt.start_at);
-  const manageUrl = `${appUrl}/manage/${token}`;
+  const manageUrl = buildManageUrl(token);
 
   await dispatch(supabase, body.type, appt, {
     channels: body.channels,

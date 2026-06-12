@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "";
+
+export function buildManageUrl(token: string): string {
+  return `${APP_URL()}/manage/${token}`;
+}
+
 export async function createAppointmentToken(
   supabase: SupabaseClient,
   appointmentId: string,

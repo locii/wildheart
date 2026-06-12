@@ -12,6 +12,7 @@ import {
   Clock,
   Layers,
   Code2,
+  Bell,
   LogOut,
   Plus,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const settingsItems = [
   { href: "/admin/availability", label: "Hours", icon: Clock },
   { href: "/admin/services", label: "Services", icon: Layers },
   { href: "/admin/embed", label: "Embed", icon: Code2 },
+  { href: "/admin/settings", label: "Notifications", icon: Bell },
 ];
 
 const mobileItems = [...navItems, ...settingsItems];
@@ -43,7 +45,7 @@ export const groups = [
   {
     label: "Settings",
     href: "/admin/locations",
-    prefix: ["/admin/locations", "/admin/availability", "/admin/services", "/admin/embed"],
+    prefix: ["/admin/locations", "/admin/availability", "/admin/services", "/admin/embed", "/admin/settings"],
   },
 ];
 

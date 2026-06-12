@@ -2,6 +2,7 @@ import {
   Html, Head, Body, Container, Heading, Text, Link, Section, Hr,
 } from "@react-email/components";
 import * as React from "react";
+import { s } from "./shared";
 
 interface Props {
   clientFirstName: string;
@@ -27,46 +28,42 @@ export function RescheduleConfirmationEmail({
   return (
     <Html lang="en">
       <Head />
-      <Body style={body}>
-        <Container style={container}>
-          <Heading style={h1}>Appointment rescheduled</Heading>
-          <Text style={greeting}>Hi {clientFirstName},</Text>
-          <Text style={text}>
-            Your appointment has been rescheduled. Here are your updated details:
-          </Text>
-
-          <Section style={card}>
-            <Text style={label}>NEW TIME</Text>
-            <Text style={detail}><strong>What:</strong> {appointmentType}</Text>
-            <Text style={detail}><strong>Where:</strong> {locationName}</Text>
-            <Text style={detail}><strong>When:</strong> {newDate}</Text>
-            <Text style={detail}><strong>Time:</strong> {newTime}</Text>
+      <Body style={s.body}>
+        <Container style={s.wrapper}>
+          <Section style={s.header}>
+            <Text style={s.brandName}>Wildheart Psychotherapy</Text>
           </Section>
+          <Section style={s.card}>
+            <Heading style={s.heading}>Appointment rescheduled</Heading>
+            <Text style={s.greeting}>Hi {clientFirstName},</Text>
+            <Text style={s.text}>
+              Your appointment has been rescheduled. Here are your updated details:
+            </Text>
 
-          <Text style={oldLabel}>Previous time: {oldDate} at {oldTime}</Text>
+            <Section style={s.detailBox}>
+              <Text style={s.detailLabel}>New time</Text>
+              <Text style={s.detailRow}><strong>Service</strong> &nbsp;{appointmentType}</Text>
+              <Text style={s.detailRow}><strong>Location</strong> &nbsp;{locationName}</Text>
+              <Text style={s.detailRow}><strong>Date</strong> &nbsp;{newDate}</Text>
+              <Text style={s.detailRow}><strong>Time</strong> &nbsp;{newTime}</Text>
+            </Section>
 
-          <Text style={text}>
-            Need to make another change?{" "}
-            <Link href={manageUrl} style={link}>Manage your appointment →</Link>
-          </Text>
+            <Text style={{ ...s.detailMuted, marginBottom: "20px" }}>
+              Previous time: {oldDate} at {oldTime}
+            </Text>
 
-          <Hr style={hr} />
-          <Text style={footer}>Wildheart Psychotherapy</Text>
+            <Text style={s.text}>
+              Need to make another change?{" "}
+              <Link href={manageUrl} style={s.link}>Manage your appointment →</Link>
+            </Text>
+
+            <Hr style={s.hr} />
+            <Text style={s.footer}>
+              Wildheart Psychotherapy · This email confirms your rescheduled appointment.
+            </Text>
+          </Section>
         </Container>
       </Body>
     </Html>
   );
 }
-
-const body = { backgroundColor: "#f9fafb", fontFamily: "sans-serif" };
-const container = { maxWidth: "540px", margin: "0 auto", padding: "40px 20px" };
-const h1 = { fontSize: "22px", fontWeight: "700", color: "#111827", marginBottom: "8px" };
-const greeting = { fontSize: "16px", color: "#374151", marginBottom: "4px" };
-const text = { fontSize: "15px", color: "#374151", lineHeight: "1.6", marginBottom: "12px" };
-const card = { backgroundColor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "20px", marginBottom: "12px" };
-const label = { fontSize: "11px", fontWeight: "700", color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: "8px" };
-const detail = { fontSize: "14px", color: "#374151", marginBottom: "6px" };
-const oldLabel = { fontSize: "13px", color: "#9ca3af", marginBottom: "16px" };
-const link = { color: "#1d4ed8", textDecoration: "underline" };
-const hr = { borderColor: "#e5e7eb", margin: "24px 0" };
-const footer = { fontSize: "13px", color: "#9ca3af" };
