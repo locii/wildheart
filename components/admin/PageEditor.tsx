@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Trash2 } from "lucide-react";
 import type { Page, SidebarBlock } from "@/lib/supabase/types";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
@@ -23,6 +23,8 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
   const [content, setContent] = useState(page.content ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function save() {
     setSaving(true);
@@ -43,6 +45,13 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    router.refresh();
+  }
+
+  async function deletePage() {
+    setDeleting(true);
+    await fetch(`/api/cms/pages/${encodeURIComponent(page.slug)}`, { method: "DELETE" });
+    router.push("/admin/pages");
     router.refresh();
   }
 
@@ -165,6 +174,34 @@ export function PageEditor({ page, sidebarBlocks = [] }: { page: Page; sidebarBl
         >
           View →
         </a>
+        <div className="ml-auto">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Delete this page?</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={deletePage}
+                disabled={deleting}
+              >
+                {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Yes, delete"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
