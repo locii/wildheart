@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { PageList } from "@/components/admin/PageList";
-import { getNav } from "@/lib/cms";
+import { getMenuNav } from "@/lib/cms";
 import type { NavItem } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export default async function PagesListPage() {
   const supabase = createServiceClient() as any;
   const [{ data: pages }, nav] = await Promise.all([
     supabase.from("pages").select("slug, title, updated_at, is_public"),
-    getNav(),
+    getMenuNav("main-nav"),
   ]);
 
   const navHrefs = flattenNavHrefs(nav);
