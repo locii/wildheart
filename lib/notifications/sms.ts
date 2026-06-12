@@ -61,9 +61,6 @@ export async function sendSms(
     case "reminder_24h":
       body = `Hi ${client.first_name}, reminder: your ${apptType.name} is tomorrow on ${date} at ${time}. Manage: ${manageUrl}`;
       break;
-    case "reminder_1h":
-      body = `Hi ${client.first_name}, reminder: your ${apptType.name} is in 1 hour at ${time}. See you soon! Manage: ${manageUrl}`;
-      break;
   }
 
   try {
