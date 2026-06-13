@@ -24,6 +24,7 @@ const navItems = [
   { href: "/admin/appointments", label: "Schedule", icon: CalendarDays },
   { href: "/admin/clients", label: "Clients", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: BarChart2 },
+  { href: "/admin/notifications", label: "Notif. Log", icon: Bell },
 ];
 
 const settingsItems = [
@@ -31,7 +32,7 @@ const settingsItems = [
   { href: "/admin/availability", label: "Hours", icon: Clock },
   { href: "/admin/services", label: "Services", icon: Layers },
   { href: "/admin/embed", label: "Embed", icon: Code2 },
-  { href: "/admin/settings", label: "Notifications", icon: Bell },
+  { href: "/admin/settings", label: "Notif. Settings", icon: Bell },
 ];
 
 const mobileItems = [...navItems, ...settingsItems];
@@ -40,7 +41,7 @@ export const groups = [
   {
     label: "Appointments",
     href: "/admin/dashboard",
-    prefix: ["/admin/dashboard", "/admin/appointments", "/admin/clients", "/admin/reports", "/admin/contact"],
+    prefix: ["/admin/dashboard", "/admin/appointments", "/admin/clients", "/admin/reports", "/admin/contact", "/admin/notifications"],
   },
   {
     label: "Settings",
