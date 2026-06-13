@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://wildheartpsychotherapy.com.au").replace(/\/$/, "");
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
   const domain = appUrl.replace(/https?:\/\//, "");
   const stampUtc = format(toZonedTime(new Date(), TZ), "yyyyMMdd'T'HHmmss'Z'", { timeZone: "UTC" });
 
