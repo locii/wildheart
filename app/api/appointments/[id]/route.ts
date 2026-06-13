@@ -21,7 +21,47 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ appointment: data as AppointmentWithRelations });
+
+  const appt = data as AppointmentWithRelations;
+
+  // Fetch client session history and intake in parallel
+  const [clientApptsRes, intakeRes] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("id, start_at, end_at, timezone, cancelled_at, type:appointment_types(name)")
+      .eq("client_id", appt.client.id)
+      .order("start_at", { ascending: false }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from("intake_forms") as any)
+      .select("completed_at, data")
+      .eq("client_id", appt.client.id)
+      .maybeSingle(),
+  ]);
+
+  const allSessions = (clientApptsRes.data ?? []) as {
+    id: string; start_at: string; end_at: string; timezone: string;
+    cancelled_at: string | null; type: { name: string };
+  }[];
+
+  const intakeForm = intakeRes.data as { completed_at: string | null; data: Record<string, string> | null } | null;
+
+  // Only fetch questions when intake is completed
+  let intakeQuestions: { id: string; question: string; field_key: string }[] = [];
+  if (intakeForm?.completed_at) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: qs } = await (supabase.from("intake_questions") as any)
+      .select("id, question, field_key")
+      .eq("is_active", true)
+      .order("sort_order");
+    intakeQuestions = qs ?? [];
+  }
+
+  return NextResponse.json({
+    appointment: appt,
+    sessions: allSessions,
+    intakeForm,
+    intakeQuestions,
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {

@@ -7,12 +7,12 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import {
   ChevronLeft, MapPin, Clock, DollarSign,
-  User, Mail, Phone, AlertCircle, Send,
+  User, Mail, Phone, AlertCircle, Send, CheckCircle, History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import type { AppointmentWithRelations } from "@/lib/supabase/types";
+import type { AppointmentWithRelations, Json } from "@/lib/supabase/types";
 import { clientUrl } from "@/lib/client-url";
 import type { NotificationType } from "@/lib/notifications/dispatch";
 
@@ -27,7 +27,21 @@ const NOTIFY_OPTIONS: { value: AnyNotifyType; label: string }[] = [
   { value: "intake", label: "Intake form invite" },
 ];
 
-export function AppointmentDetail({ appointment: initial }: { appointment: AppointmentWithRelations }) {
+type Session = { id: string; start_at: string; timezone: string; cancelled_at: string | null; type: { name: string } };
+type IntakeForm = { completed_at: string | null; data: Record<string, string> | null } | null;
+type IntakeQuestion = { id: string; question: string; field_key: string };
+
+export function AppointmentDetail({
+  appointment: initial,
+  sessions = [],
+  intakeForm = null,
+  intakeQuestions = [],
+}: {
+  appointment: AppointmentWithRelations;
+  sessions?: Session[];
+  intakeForm?: IntakeForm;
+  intakeQuestions?: IntakeQuestion[];
+}) {
   const router = useRouter();
   const [appt, setAppt] = useState(initial);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -144,6 +158,83 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
             )}
           </div>
         </div>
+
+        {/* Session history */}
+        {sessions.length > 0 && (() => {
+          const now = new Date();
+          const active = sessions.filter(s => !s.cancelled_at);
+          const upcoming = active.filter(s => new Date(s.start_at) > now && s.id !== appt.id);
+          const past = active.filter(s => new Date(s.start_at) <= now && s.id !== appt.id);
+          return (
+            <div className="bg-card border rounded-2xl px-4 py-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold">Sessions</h2>
+                <span className="text-xs text-muted-foreground">{active.length} total</span>
+              </div>
+              {upcoming.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-1.5">Upcoming</p>
+                  <div className="space-y-1.5">
+                    {upcoming.slice(0, 3).map(s => (
+                      <div key={s.id} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{s.type.name}</span>
+                        <span className="text-xs text-muted-foreground/60">{format(toZonedTime(new Date(s.start_at), s.timezone), "d MMM yyyy")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {past.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-1.5">History</p>
+                  <div className="space-y-1.5">
+                    {past.slice(0, 8).map(s => (
+                      <div key={s.id} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{s.type.name}</span>
+                        <span className="text-xs text-muted-foreground/60">{format(toZonedTime(new Date(s.start_at), s.timezone), "d MMM yyyy")}</span>
+                      </div>
+                    ))}
+                    {past.length > 8 && (
+                      <p className="text-xs text-muted-foreground/40">+{past.length - 8} more</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Intake form */}
+        {intakeForm && (
+          <div className="bg-card border rounded-2xl px-4 py-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold">Intake form</h2>
+              {intakeForm.completed_at ? (
+                <span className="flex items-center gap-1 text-xs text-green-500">
+                  <CheckCircle className="h-3.5 w-3.5" /> Completed
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-xs text-amber-500">
+                  <History className="h-3.5 w-3.5" /> Pending
+                </span>
+              )}
+            </div>
+            {intakeForm.completed_at && intakeQuestions.length > 0 && intakeForm.data && (
+              <div className="space-y-3 border-t pt-3">
+                {intakeQuestions.map(q => {
+                  const answer = (intakeForm.data as Record<string, Json>)?.[q.field_key];
+                  if (!answer && answer !== false) return null;
+                  return (
+                    <div key={q.id}>
+                      <p className="text-xs text-muted-foreground mb-0.5">{q.question}</p>
+                      <p className="text-sm leading-relaxed">{String(answer)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {!isCancelled && (
           <div className="fixed bottom-[72px] left-0 right-0 px-4 pb-2 md:static md:bottom-auto md:pb-0 bg-muted/50 md:bg-transparent pt-2 md:pt-0 border-t md:border-0">

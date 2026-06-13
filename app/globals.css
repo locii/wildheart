@@ -143,6 +143,7 @@
   color-scheme: light;
   color: oklch(0.15 0 0);
   /* shadcn :root vars */
+  --background:             oklch(1 0 0);
   --foreground:             oklch(0.15 0 0);
   --card-foreground:        oklch(0.15 0 0);
   --popover-foreground:     oklch(0.15 0 0);
@@ -154,9 +155,10 @@
   --card:                   oklch(1 0 0);
   --muted:                  oklch(0.96 0 0);
   /* tailwind @theme --color-* vars (used by border-input, text-foreground etc) */
+  --color-background:       oklch(1 0 0);
   --color-foreground:       oklch(0.15 0 0);
   --color-border:           oklch(0.90 0 0);
-  --color-input:            oklch(0.88 0 0);
+  --color-input:            oklch(0.93 0 0);
   --color-muted:            oklch(0.96 0 0);
   --color-muted-foreground: oklch(0.45 0 0);
   --color-card:             oklch(1 0 0);

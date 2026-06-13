@@ -42,7 +42,7 @@ export type IntakeQuestion = {
   id: string;
   question: string;
   field_key: string;
-  field_type: "text" | "textarea" | "select" | "checkbox";
+  field_type: "text" | "textarea";
   options: Json | null;
   required: boolean;
   sort_order: number;

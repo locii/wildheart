@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import type { IntakeQuestion } from "@/lib/supabase/types";
 
-type FieldType = IntakeQuestion["field_type"];
+type FieldType = "text" | "textarea";
 
 type Draft = {
   question: string;
@@ -36,8 +36,6 @@ function toFieldKey(q: string) {
 const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   text: "Short text",
   textarea: "Long text",
-  select: "Select",
-  checkbox: "Checkbox",
 };
 
 function QuestionForm({
@@ -141,7 +139,8 @@ export function IntakeQuestionsEditor({ initialQuestions }: { initialQuestions: 
 
   function startEdit(q: IntakeQuestion) {
     setEditingId(q.id);
-    setEditDraft({ question: q.question, field_key: q.field_key, field_type: q.field_type, required: q.required });
+    const ft = (q.field_type === "textarea" ? "textarea" : "text") as FieldType;
+    setEditDraft({ question: q.question, field_key: q.field_key, field_type: ft, required: q.required });
     setAdding(false);
   }
 
@@ -254,7 +253,7 @@ export function IntakeQuestionsEditor({ initialQuestions }: { initialQuestions: 
                   <p className="text-xs text-muted-foreground mt-0.5">
                     <span className="font-mono">{q.field_key}</span>
                     <span className="mx-1.5 opacity-40">·</span>
-                    {FIELD_TYPE_LABELS[q.field_type]}
+                    {FIELD_TYPE_LABELS[q.field_type as FieldType] ?? q.field_type}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">

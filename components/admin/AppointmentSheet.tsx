@@ -7,6 +7,7 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import {
   MapPin, Clock, DollarSign, User, Mail, Phone,
   AlertCircle, ExternalLink, Send, Pencil, Check, X, CalendarPlus,
+  CheckCircle, History,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -14,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { AppointmentWithRelations } from "@/lib/supabase/types";
+import type { AppointmentWithRelations, Json } from "@/lib/supabase/types";
 import { clientUrl } from "@/lib/client-url";
 import type { NotificationType } from "@/lib/notifications/dispatch";
 
@@ -39,7 +40,14 @@ export function AppointmentSheet({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  type Session = { id: string; start_at: string; timezone: string; cancelled_at: string | null; type: { name: string } };
+  type IntakeForm = { completed_at: string | null; data: Record<string, string> | null } | null;
+  type IntakeQuestion = { id: string; question: string; field_key: string };
+
   const [appt, setAppt] = useState<AppointmentWithRelations | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [intakeForm, setIntakeForm] = useState<IntakeForm>(null);
+  const [intakeQuestions, setIntakeQuestions] = useState<IntakeQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -60,7 +68,13 @@ export function AppointmentSheet({
     setLoading(true);
     fetch(`/api/appointments/${appointmentId}`)
       .then((r) => r.json())
-      .then(({ appointment }) => { setAppt(appointment); setLoading(false); })
+      .then(({ appointment, sessions: s, intakeForm: i, intakeQuestions: q }) => {
+        setAppt(appointment);
+        setSessions(s ?? []);
+        setIntakeForm(i ?? null);
+        setIntakeQuestions(q ?? []);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [appointmentId]);
 
@@ -238,6 +252,79 @@ export function AppointmentSheet({
                     )}
                   </div>
                 </div>
+
+                {/* Session history */}
+                {sessions.length > 0 && (() => {
+                  const now = new Date();
+                  const active = sessions.filter(s => !s.cancelled_at);
+                  const upcoming = active.filter(s => new Date(s.start_at) > now && s.id !== appt.id);
+                  const past = active.filter(s => new Date(s.start_at) <= now && s.id !== appt.id);
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sessions</p>
+                        <span className="text-xs text-muted-foreground">{active.length} total</span>
+                      </div>
+                      {upcoming.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">Upcoming</p>
+                          {upcoming.slice(0, 3).map(s => (
+                            <div key={s.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{s.type.name}</span>
+                              <span>{format(toZonedTime(new Date(s.start_at), s.timezone), "d MMM yyyy")}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {past.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">History</p>
+                          {past.slice(0, 5).map(s => (
+                            <div key={s.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{s.type.name}</span>
+                              <span>{format(toZonedTime(new Date(s.start_at), s.timezone), "d MMM yyyy")}</span>
+                            </div>
+                          ))}
+                          {past.length > 5 && (
+                            <p className="text-[10px] text-muted-foreground/60">+{past.length - 5} more</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Intake form */}
+                {intakeForm && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Intake form</p>
+                      {intakeForm.completed_at ? (
+                        <span className="flex items-center gap-1 text-xs text-green-500">
+                          <CheckCircle className="h-3 w-3" /> Completed
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-amber-500">
+                          <History className="h-3 w-3" /> Pending
+                        </span>
+                      )}
+                    </div>
+                    {intakeForm.completed_at && intakeQuestions.length > 0 && intakeForm.data && (
+                      <div className="space-y-2.5">
+                        {intakeQuestions.map(q => {
+                          const answer = (intakeForm.data as Record<string, Json>)?.[q.field_key];
+                          if (!answer && answer !== false) return null;
+                          return (
+                            <div key={q.id}>
+                              <p className="text-[10px] text-muted-foreground/70 mb-0.5">{q.question}</p>
+                              <p className="text-xs leading-relaxed">{String(answer)}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Meta */}
                 <div className="text-xs text-muted-foreground/60 space-y-0.5">
