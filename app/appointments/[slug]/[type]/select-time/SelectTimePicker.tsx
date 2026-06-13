@@ -50,7 +50,7 @@ export function SelectTimePicker({
 
   function selectSlot(slot: TimeSlot) {
     const params = new URLSearchParams({ date: selectedDate, slot: slot.start });
-    router.push(`/appointments/${locationSlug}/${typeSlug}/details?${params}`);
+    router.push(`/${locationSlug}/${typeSlug}/details?${params}`);
   }
 
   const days = eachDayOfInterval({ start: startOfMonth(viewMonth), end: endOfMonth(viewMonth) });

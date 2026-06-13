@@ -3,7 +3,7 @@ import type { AppointmentWithRelations } from "@/lib/supabase/types";
 import { formatApptDateTime } from "./format";
 import { interpolate, DEFAULT_SMS_TEMPLATES } from "./settings";
 
-export type SmsType = "booking" | "cancellation" | "reschedule" | "reminder_24h";
+export type SmsType = "booking" | "cancellation" | "reschedule" | "reminder_24h" | "reminder_48h";
 
 export interface SmsResult {
   ok: boolean;

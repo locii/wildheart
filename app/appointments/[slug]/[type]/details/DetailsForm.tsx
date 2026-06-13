@@ -34,7 +34,7 @@ export function DetailsForm({
     params.set("last", form.last_name.trim());
     params.set("email", form.email.trim());
     if (form.phone.trim()) params.set("phone", form.phone.trim());
-    router.push(`/appointments/${locationSlug}/${typeSlug}/confirm?${params}`);
+    router.push(`/${locationSlug}/${typeSlug}/confirm?${params}`);
   }
 
   return (

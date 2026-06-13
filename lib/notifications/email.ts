@@ -37,7 +37,7 @@ export async function sendAdminEmail(subject: string, text: string): Promise<voi
   }
 }
 
-export type EmailType = "booking" | "cancellation" | "reschedule" | "reminder_24h" | "intake";
+export type EmailType = "booking" | "cancellation" | "reschedule" | "reminder_24h" | "reminder_48h" | "intake";
 
 export interface EmailResult {
   ok: boolean;
@@ -118,6 +118,19 @@ export async function sendEmail(
         manageUrl,
         reminderType: "24h",
         doorCode,
+      });
+      break;
+    }
+    case "reminder_48h": {
+      subject = `Reminder: ${apptType.name} in 2 days`;
+      reactEl = ReminderEmail({
+        clientFirstName: client.first_name,
+        appointmentType: apptType.name,
+        locationName: location.name,
+        date,
+        time,
+        manageUrl,
+        reminderType: "48h",
       });
       break;
     }

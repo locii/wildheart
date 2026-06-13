@@ -67,7 +67,7 @@ export function ConfirmStep({
       token: json.token,
       ...(json.isNewClient ? { intake: "1" } : {}),
     });
-    router.push(`/appointments/${locationSlug}/success?${params}`);
+    router.push(`/${locationSlug}/success?${params}`);
   }
 
   return (

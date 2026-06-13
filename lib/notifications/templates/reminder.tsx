@@ -11,7 +11,7 @@ interface Props {
   date: string;
   time: string;
   manageUrl: string;
-  reminderType: "24h" | "1h";
+  reminderType: "24h" | "48h" | "1h";
   doorCode?: string;
 }
 
@@ -25,7 +25,7 @@ export function ReminderEmail({
   reminderType,
   doorCode,
 }: Props) {
-  const when = reminderType === "24h" ? "tomorrow" : "in about an hour";
+  const when = reminderType === "48h" ? "in 2 days" : reminderType === "24h" ? "tomorrow" : "in about an hour";
 
   return (
     <Html lang="en">

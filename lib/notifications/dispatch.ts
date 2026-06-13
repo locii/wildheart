@@ -30,9 +30,9 @@ export async function dispatch(
     ? await Promise.all([getDoorCodes(supabase), getSmsTemplates(supabase)])
     : [null, null];
 
-  // Derive door code from appointment day (only for 24h reminder)
+  // Derive door code from appointment day (for reminders)
   let doorCode: string | undefined;
-  if (type === "reminder_24h" && doorCodes) {
+  if ((type === "reminder_24h" || type === "reminder_48h") && doorCodes) {
     const apptDate = toZonedTime(new Date(appt.start_at), appt.timezone);
     const day = apptDate.getDay().toString();
     doorCode = doorCodes[day] ?? undefined;

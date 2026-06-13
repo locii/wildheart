@@ -106,7 +106,7 @@ export type AppointmentToken = {
 export type Notification = {
   id: string;
   appointment_id: string;
-  type: "booking" | "cancellation" | "reschedule" | "reminder_24h" | "reminder_1h";
+  type: "booking" | "cancellation" | "reschedule" | "reminder_24h" | "reminder_48h" | "reminder_1h";
   channel: "email" | "sms";
   sent_at: string | null;
   status: "pending" | "sent" | "failed" | "skipped";
