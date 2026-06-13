@@ -5,6 +5,7 @@ import type { Client, Location, AppointmentType, AppointmentWithRelations } from
 import { dispatch } from "@/lib/notifications/dispatch";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendAdminSms } from "@/lib/notifications/sms";
+import { sendAdminEmail } from "@/lib/notifications/email";
 import { formatApptDateTime } from "@/lib/notifications/format";
 
 export async function GET(req: NextRequest) {
@@ -203,13 +204,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Notify admin when a client self-books via the public flow
-  if (source === "self-book" || source === "embed") {
+  // Notify admin on client-initiated bookings and reschedules
+  if (source === "self-book" || source === "embed" || source === "reschedule") {
     const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, location.timezone);
     const clientName = `${client.first_name} ${client.last_name}`;
-    sendAdminSms(
-      `New booking: ${clientName} – ${apptType.name} on ${date} at ${time}`
-    ).catch(console.error);
+    const isReschedule = source === "reschedule";
+    const msg = isReschedule
+      ? `${clientName} rescheduled their ${apptType.name} to ${date} at ${time}`
+      : `New booking: ${clientName} – ${apptType.name} on ${date} at ${time}`;
+    sendAdminSms(msg).catch(console.error);
+    if (isReschedule) {
+      sendAdminEmail(`Booking rescheduled — ${clientName}`, msg).catch(console.error);
+    }
   }
 
   return NextResponse.json({ appointment: appt, token, isNewClient });

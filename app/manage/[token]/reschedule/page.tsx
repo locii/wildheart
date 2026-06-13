@@ -55,7 +55,7 @@ export default function ReschedulePage() {
       fetch(`/api/appointments/${appt.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cancelled: true }),
+        body: JSON.stringify({ cancelled: true, source: "reschedule" }),
       }),
       fetch("/api/appointments", {
         method: "POST",
@@ -70,7 +70,7 @@ export default function ReschedulePage() {
             phone: appt.client.phone ?? "",
             email: appt.client.email,
           },
-          source: "self-book",
+          source: "reschedule",
           scheduledBy: "client-self",
         }),
       }),

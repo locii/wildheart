@@ -14,6 +14,23 @@ function getResend(): Resend {
   return _resend;
 }
 const FROM = () => process.env.RESEND_FROM_EMAIL ?? "appointments@yourdomain.com";
+const ADMIN_EMAIL = () => process.env.ADMIN_NOTIFY_EMAIL ?? "";
+
+/** Send a plain notification email to the admin. Fire and forget. */
+export async function sendAdminEmail(subject: string, text: string): Promise<void> {
+  const to = ADMIN_EMAIL();
+  if (!to) return;
+  try {
+    await getResend().emails.send({
+      from: FROM(),
+      to,
+      subject,
+      html: `<pre style="font-family:sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;">${text}</pre>`,
+    });
+  } catch (err) {
+    console.error("Admin email failed:", err);
+  }
+}
 
 export type EmailType = "booking" | "cancellation" | "reschedule" | "reminder_24h" | "intake";
 

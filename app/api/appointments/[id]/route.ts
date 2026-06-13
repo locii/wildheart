@@ -3,6 +3,9 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
 import { dispatch } from "@/lib/notifications/dispatch";
 import { createAppointmentToken, buildManageUrl } from "@/lib/tokens";
+import { sendAdminSms } from "@/lib/notifications/sms";
+import { sendAdminEmail } from "@/lib/notifications/email";
+import { formatApptDateTime } from "@/lib/notifications/format";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -46,8 +49,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const appt = data as AppointmentWithRelations;
+  const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, appt.timezone);
+  const clientName = `${appt.client.first_name} ${appt.client.last_name}`;
 
-  // Send cancellation notification if requested
+  // Send client cancellation notification if requested (admin-initiated)
   if (body.cancelled === true && (body.sendCancellationEmail || body.sendCancellationSms)) {
     const channels: ("email" | "sms")[] = [
       ...(body.sendCancellationEmail ? ["email" as const] : []),
@@ -56,7 +61,14 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     dispatch(supabase, "cancellation", appt, { channels }).catch(console.error);
   }
 
-  // Send reschedule confirmation if rescheduled
+  // Notify admin when a client cancels via the manage page
+  if (body.cancelled === true && body.source === "client") {
+    const msg = `${clientName} cancelled their ${appt.type.name} on ${date} at ${time}`;
+    sendAdminSms(msg).catch(console.error);
+    sendAdminEmail(`Booking cancelled — ${clientName}`, msg).catch(console.error);
+  }
+
+  // Send client reschedule confirmation if requested (admin-initiated)
   if (body.start_at && (body.sendRescheduleEmail || body.sendRescheduleSms)) {
     const channels: ("email" | "sms")[] = [
       ...(body.sendRescheduleEmail ? ["email" as const] : []),
