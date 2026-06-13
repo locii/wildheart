@@ -4,6 +4,7 @@ import { toZonedTime } from "date-fns-tz";
 import { sendEmail, type EmailType } from "./email";
 import { sendSms, type SmsType } from "./sms";
 import { getDoorCodes, getSmsTemplates } from "./settings";
+import { shorten } from "@/lib/short-url";
 
 export type NotificationType = Notification["type"];
 
@@ -48,8 +49,11 @@ export async function dispatch(
       errorMsg = result.error;
     } else if (channel === "sms") {
       const smsTemplate = smsTemplates?.[type as SmsType];
+      const smsManageUrl = options.manageUrl
+        ? await shorten(supabase, options.manageUrl)
+        : undefined;
       const result = await sendSms(type as SmsType, appt, {
-        manageUrl: options.manageUrl,
+        manageUrl: smsManageUrl,
         doorCode,
         smsTemplate,
       });
