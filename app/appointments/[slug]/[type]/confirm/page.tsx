@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AppointmentType, Location } from "@/lib/supabase/types";
+import { WizardProgress } from "@/components/booking/WizardProgress";
 import { ConfirmStep } from "./ConfirmStep";
 
 export default async function ConfirmPage({
@@ -21,8 +22,6 @@ export default async function ConfirmPage({
   const phone = sp.phone ?? "";
 
   if (!date || !slot || !first || !last || !email) {
-    // Missing state — send back to start of this booking
-    const { redirect } = await import("next/navigation");
     redirect(`/appointments/${slug}/${typeParam}/select-time`);
   }
 
@@ -43,14 +42,19 @@ export default async function ConfirmPage({
   if (!apptType) notFound();
 
   return (
-    <ConfirmStep
-      location={location}
-      apptType={apptType}
-      date={date}
-      slot={slot}
-      client={{ first_name: first, last_name: last, email, phone }}
-      locationSlug={slug}
-      typeSlug={typeParam}
-    />
+    <>
+      <WizardProgress step={3} locationName={location.name} typeName={apptType.name} />
+      <div className="p-5">
+        <ConfirmStep
+          location={location}
+          apptType={apptType}
+          date={date}
+          slot={slot}
+          client={{ first_name: first, last_name: last, email, phone }}
+          locationSlug={slug}
+          typeSlug={typeParam}
+        />
+      </div>
+    </>
   );
 }

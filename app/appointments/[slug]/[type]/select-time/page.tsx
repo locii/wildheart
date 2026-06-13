@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AppointmentType, Location } from "@/lib/supabase/types";
+import { WizardProgress } from "@/components/booking/WizardProgress";
 import { SelectTimePicker } from "./SelectTimePicker";
 
 export default async function SelectTimePage({
@@ -26,10 +27,15 @@ export default async function SelectTimePage({
   if (!apptType) notFound();
 
   return (
-    <SelectTimePicker
-      locationSlug={slug}
-      typeSlug={typeParam}
-      duration={apptType.duration_minutes}
-    />
+    <>
+      <WizardProgress step={1} locationName={location.name} typeName={apptType.name} />
+      <div className="p-5">
+        <SelectTimePicker
+          locationSlug={slug}
+          typeSlug={typeParam}
+          duration={apptType.duration_minutes}
+        />
+      </div>
+    </>
   );
 }

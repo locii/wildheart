@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { BookingShell } from "@/components/booking/BookingShell";
-import { WizardProgress } from "@/components/booking/WizardProgress";
 import type { Location, AppointmentType } from "@/lib/supabase/types";
 
 export default async function WizardLayout({
@@ -19,8 +18,7 @@ export default async function WizardLayout({
     .select("*")
     .eq("slug", slug)
     .maybeSingle();
-  const location = locData as Location | null;
-  if (!location) notFound();
+  if (!(locData as Location | null)) notFound();
 
   const { data: typesData } = await supabase.from("appointment_types").select("*");
   const apptType = ((typesData ?? []) as AppointmentType[]).find(
@@ -36,8 +34,7 @@ export default async function WizardLayout({
         </p>
         <h1 className="text-xl font-semibold text-gray-900">Make a booking</h1>
       </div>
-      <WizardProgress locationName={location.name} typeName={apptType.name} />
-      <div className="p-5">{children}</div>
+      {children}
     </BookingShell>
   );
 }

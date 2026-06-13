@@ -14,14 +14,14 @@ export const s = {
   },
   // Brand header
   header: {
-    backgroundColor: "#2d1a10",
+    backgroundColor: "#22335b",
     borderRadius: "10px 10px 0 0",
     padding: "22px 32px",
   },
   brandName: {
     fontSize: "11px",
     fontWeight: "700",
-    color: "#ffba08",
+    color: "#ffffff",
     letterSpacing: "2.5px",
     textTransform: "uppercase" as const,
     margin: "0",
@@ -107,7 +107,7 @@ export const s = {
   },
   // CTA link
   link: {
-    color: "#b45309",
+    color: "#22335b",
     textDecoration: "underline",
     fontWeight: "500",
   },

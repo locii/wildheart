@@ -1,28 +1,15 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
-
-type StepId = "select-time" | "details" | "confirm";
-
-const STEPS: StepId[] = ["select-time", "details", "confirm"];
-const STEP_LABELS: Record<StepId, string> = {
-  "select-time": "Select time",
-  details: "Your details",
-  confirm: "Confirm",
-};
+const LABELS = ["Select time", "Your details", "Confirm"];
 
 export function WizardProgress({
+  step,
   locationName,
   typeName,
 }: {
+  step: 1 | 2 | 3;
   locationName: string;
   typeName: string;
 }) {
-  const pathname = usePathname();
-  const currentStep = STEPS.find((s) => pathname.endsWith(`/${s}`)) ?? "select-time";
-  const stepIdx = STEPS.indexOf(currentStep);
-  const progress = ((stepIdx + 1) / STEPS.length) * 100;
+  const progress = (step / 3) * 100;
 
   return (
     <>
@@ -33,12 +20,12 @@ export function WizardProgress({
         />
       </div>
       <div className="px-5 py-3 border-b border-stone-100">
-        <div className="flex items-center gap-1.5 text-sm flex-wrap min-w-0">
-          <span className="text-stone-400 truncate">{locationName}</span>
-          <ChevronRight className="h-3.5 w-3.5 text-stone-300 shrink-0" />
-          <span className="text-stone-700 font-medium truncate">{typeName}</span>
-          <ChevronRight className="h-3.5 w-3.5 text-stone-300 shrink-0" />
-          <span className="text-amber-600 font-medium">{STEP_LABELS[currentStep]}</span>
+        <div className="flex items-center gap-1 text-sm flex-wrap min-w-0 text-stone-500">
+          <span className="truncate">{locationName}</span>
+          <span className="text-stone-300 shrink-0 px-0.5">›</span>
+          <span className="font-medium text-stone-700 truncate">{typeName}</span>
+          <span className="text-stone-300 shrink-0 px-0.5">›</span>
+          <span className="font-medium text-amber-600 shrink-0">{LABELS[step - 1]}</span>
         </div>
       </div>
     </>
