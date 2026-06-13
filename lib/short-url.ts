@@ -20,7 +20,7 @@ export async function shorten(supabase: SupabaseClient, targetUrl: string): Prom
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from("short_urls") as any)
       .insert({ code, target_url: targetUrl });
-    if (!error) return `${base.replace(/\/$/, "")}/r/${code}`;
+    if (!error) return `${base.replace(/\/$/, "")}/${code}`;
   }
 
   return targetUrl; // fallback to full URL if inserts kept failing
