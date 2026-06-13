@@ -20,7 +20,7 @@ export const DEFAULT_SMS_TEMPLATES: Required<SmsTemplates> = {
   reminder_24h:
     "Hi {{first_name}}, reminder: your {{appointment_type}} is tomorrow at {{time}}. Door code: {{door_code}}. Manage: {{manage_url}}",
   reminder_48h:
-    "Hi {{first_name}}, reminder: your {{appointment_type}} is in 2 days on {{date}} at {{time}}. Door code: {{door_code}}. Manage: {{manage_url}}",
+    "Hi {{first_name}}, reminder: your {{appointment_type}} is in 2 days on {{date}} at {{time}}. Manage: {{manage_url}}",
 };
 
 export type ReminderChannels = { email: boolean; sms: boolean };

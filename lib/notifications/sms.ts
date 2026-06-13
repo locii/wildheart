@@ -42,6 +42,7 @@ export async function sendSms(
   if (!twilioClient) return { ok: false, error: "Twilio not configured" };
 
   const to = toE164(client.phone);
+  console.log(`SMS: raw="${client.phone}" → e164="${to}"`);
   const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, appt.timezone);
   const { manageUrl = "", doorCode = "", smsTemplate } = options;
 
@@ -63,7 +64,8 @@ export async function sendSms(
   const body = interpolate(template, vars);
 
   try {
-    await twilioClient.messages.create({ body, from, to });
+    const msg = await twilioClient.messages.create({ body, from, to });
+    console.log(`SMS to ${to} accepted — SID: ${msg.sid} status: ${msg.status}`);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };
