@@ -140,6 +140,7 @@
    Apply .theme-light to any white container that hosts Shadcn form components. */
 .theme-light,
 .public-site main {
+  color-scheme: light;
   color: oklch(0.15 0 0);
   /* shadcn :root vars */
   --foreground:             oklch(0.15 0 0);

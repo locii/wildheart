@@ -38,7 +38,7 @@ export default function IntakePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ appointmentId, data: answers, skipped }),
     });
-    router.push(`/appointments/${locationSlug}/success?skipped=${skipped ? "1" : "0"}`);
+    router.push(`/appointments/${locationSlug}/success`);
   }
 
   if (loading) {
