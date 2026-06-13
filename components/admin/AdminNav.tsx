@@ -15,6 +15,7 @@ import {
   Bell,
   LogOut,
   Plus,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WildhartMark } from "@/components/brand/Logo";
@@ -31,6 +32,7 @@ const settingsItems = [
   { href: "/admin/locations", label: "Locations", icon: MapPin },
   { href: "/admin/availability", label: "Hours", icon: Clock },
   { href: "/admin/services", label: "Services", icon: Layers },
+  { href: "/admin/intake", label: "Intake Form", icon: ClipboardList },
   { href: "/admin/embed", label: "Embed", icon: Code2 },
   { href: "/admin/settings", label: "Notif. Settings", icon: Bell },
 ];
@@ -46,7 +48,7 @@ export const groups = [
   {
     label: "Settings",
     href: "/admin/locations",
-    prefix: ["/admin/locations", "/admin/availability", "/admin/services", "/admin/embed", "/admin/settings"],
+    prefix: ["/admin/locations", "/admin/availability", "/admin/services", "/admin/intake", "/admin/embed", "/admin/settings"],
   },
 ];
 

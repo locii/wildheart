@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ClientDetail } from "@/components/admin/ClientDetail";
 import { toClientSlug } from "@/lib/client-url";
-import type { AppointmentWithRelations, Client, IntakeForm } from "@/lib/supabase/types";
+import type { AppointmentWithRelations, Client, IntakeForm, IntakeQuestion } from "@/lib/supabase/types";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -50,11 +50,24 @@ export default async function ClientDetailPage({ params }: Props) {
 
   if (!clientRes.data) notFound();
 
+  const intakeForm = intakeRes.data as IntakeForm | null;
+
+  // Only fetch questions if we have a completed form to display
+  let intakeQuestions: IntakeQuestion[] = [];
+  if (intakeForm?.completed_at) {
+    const { data: qs } = await supabase
+      .from("intake_questions")
+      .select("*")
+      .order("sort_order");
+    intakeQuestions = (qs ?? []) as IntakeQuestion[];
+  }
+
   return (
     <ClientDetail
       client={clientRes.data as Client}
       appointments={(appointmentsRes.data ?? []) as AppointmentWithRelations[]}
-      intakeForm={intakeRes.data as IntakeForm | null}
+      intakeForm={intakeForm}
+      intakeQuestions={intakeQuestions}
     />
   );
 }

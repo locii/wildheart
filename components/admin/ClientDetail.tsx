@@ -11,15 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type { AppointmentWithRelations, Client, IntakeForm } from "@/lib/supabase/types";
+import type { AppointmentWithRelations, Client, IntakeForm, IntakeQuestion, Json } from "@/lib/supabase/types";
 
 interface Props {
   client: Client;
   appointments: AppointmentWithRelations[];
   intakeForm: IntakeForm | null;
+  intakeQuestions?: IntakeQuestion[];
 }
 
-export function ClientDetail({ client: initialClient, appointments, intakeForm }: Props) {
+export function ClientDetail({ client: initialClient, appointments, intakeForm, intakeQuestions = [] }: Props) {
   const [client, setClient] = useState(initialClient);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ first_name: client.first_name, last_name: client.last_name, email: client.email, phone: client.phone ?? "" });
@@ -140,21 +141,8 @@ export function ClientDetail({ client: initialClient, appointments, intakeForm }
       {/* Intake form status */}
       {intakeForm !== null && (
         <div className="bg-card border rounded-2xl px-4 py-4 mb-4">
-          <h2 className="text-sm font-semibold mb-3">Intake form</h2>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              {intakeStatus === "completed" ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Completed {format(new Date(intakeForm.completed_at!), "d MMM yyyy")}</span>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <span className="text-gray-500">Not yet completed</span>
-                </>
-              )}
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">Intake form</h2>
             {intakeStatus !== "completed" && (
               <Button
                 variant="outline"
@@ -167,6 +155,35 @@ export function ClientDetail({ client: initialClient, appointments, intakeForm }
               </Button>
             )}
           </div>
+
+          <div className="flex items-center gap-2 text-sm mb-3">
+            {intakeStatus === "completed" ? (
+              <>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Completed {format(new Date(intakeForm.completed_at!), "d MMM yyyy")}</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <span className="text-gray-500">Not yet completed</span>
+              </>
+            )}
+          </div>
+
+          {intakeStatus === "completed" && intakeQuestions.length > 0 && intakeForm.data && (
+            <div className="space-y-3 pt-1 border-t mt-3">
+              {intakeQuestions.map((q) => {
+                const answer = (intakeForm.data as Record<string, Json>)?.[q.field_key];
+                if (!answer && answer !== false) return null;
+                return (
+                  <div key={q.id}>
+                    <p className="text-xs text-muted-foreground mb-0.5">{q.question}</p>
+                    <p className="text-sm">{String(answer)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
