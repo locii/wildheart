@@ -4,6 +4,8 @@ import { createAppointmentToken, buildManageUrl } from "@/lib/tokens";
 import type { Client, Location, AppointmentType, AppointmentWithRelations } from "@/lib/supabase/types";
 import { dispatch } from "@/lib/notifications/dispatch";
 import { sendEmail } from "@/lib/notifications/email";
+import { sendAdminSms } from "@/lib/notifications/sms";
+import { formatApptDateTime } from "@/lib/notifications/format";
 
 export async function GET(req: NextRequest) {
   const supabase = createServiceClient();
@@ -71,13 +73,14 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
   const body = await req.json();
 
-  const { locationSlug, typeId, start, client: clientData, source = "self-book", scheduledBy = "client-self" } = body as {
+  const { locationSlug, typeId, start, client: clientData, source = "self-book", scheduledBy = "client-self", quiet = false } = body as {
     locationSlug: string;
     typeId: string;
     start: string;
     client: { first_name: string; last_name: string; phone: string; email: string };
     source?: string;
     scheduledBy?: string;
+    quiet?: boolean;
   };
 
   // Resolve location
@@ -186,16 +189,27 @@ export async function POST(req: NextRequest) {
     type: apptType,
   };
 
-  // Auto-send booking confirmation (fire and forget — don't block the response)
-  dispatch(supabase, "booking", apptWithRelations, {
-    channels: ["email", ...(client.phone ? ["sms" as const] : [])],
-    manageUrl,
-    intakeUrl,
-  }).catch(console.error);
+  if (!quiet) {
+    // Auto-send booking confirmation (fire and forget — don't block the response)
+    dispatch(supabase, "booking", apptWithRelations, {
+      channels: ["email", ...(client.phone ? ["sms" as const] : [])],
+      manageUrl,
+      intakeUrl,
+    }).catch(console.error);
 
-  // Send intake invite directly (intake is not logged in notifications table)
-  if (isNewClient && intakeUrl) {
-    sendEmail("intake", apptWithRelations, { intakeUrl }).catch(console.error);
+    // Send intake invite directly (intake is not logged in notifications table)
+    if (isNewClient && intakeUrl) {
+      sendEmail("intake", apptWithRelations, { intakeUrl }).catch(console.error);
+    }
+  }
+
+  // Notify admin when a client self-books via the public flow
+  if (source === "self-book" || source === "embed") {
+    const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, location.timezone);
+    const clientName = `${client.first_name} ${client.last_name}`;
+    sendAdminSms(
+      `New booking: ${clientName} – ${apptType.name} on ${date} at ${time}`
+    ).catch(console.error);
   }
 
   return NextResponse.json({ appointment: appt, token, isNewClient });

@@ -69,3 +69,18 @@ export async function sendSms(
     return { ok: false, error: String(err) };
   }
 }
+
+/** Send a plain text SMS to the admin number (fire and forget). */
+export async function sendAdminSms(body: string): Promise<void> {
+  const adminTo = process.env.TWILIO_ADMIN_NUMBER;
+  const from = process.env.TWILIO_FROM_NUMBER;
+  if (!adminTo || !from) return;
+  const twilioClient = getClient();
+  if (!twilioClient) return;
+  const to = toE164(adminTo);
+  try {
+    await twilioClient.messages.create({ body, from, to });
+  } catch (err) {
+    console.error("Admin SMS failed:", err);
+  }
+}

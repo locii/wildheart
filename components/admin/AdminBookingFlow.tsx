@@ -35,6 +35,7 @@ export function AdminBookingFlow({
   const [date, setDate] = useState("");
   const [slot, setSlot] = useState<TimeSlot | null>(null);
   const [booking, setBooking] = useState(false);
+  const [quiet, setQuiet] = useState(false);
   const [error, setError] = useState("");
 
   const steps: Step[] = ["client", "location", "type", "date", "time", "confirm"];
@@ -83,6 +84,7 @@ export function AdminBookingFlow({
         client: clientData,
         source: "admin",
         scheduledBy: adminEmail,
+        quiet,
       }),
     });
     const json = await res.json();
@@ -155,6 +157,15 @@ export function AdminBookingFlow({
               <Row label="Time" value={slot.label} />
               {type.price > 0 && <Row label="Fee" value={`$${type.price}`} />}
             </div>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={quiet}
+                onChange={(e) => setQuiet(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 accent-primary"
+              />
+              <span className="text-sm text-muted-foreground">Don&apos;t send confirmation email or SMS</span>
+            </label>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button onClick={book} disabled={booking} className="w-full">
               {booking ? "Booking…" : "Create appointment"}
