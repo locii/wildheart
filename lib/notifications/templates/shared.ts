@@ -2,7 +2,7 @@
 
 export const s = {
   body: {
-    backgroundColor: "#f5f0ea",
+    backgroundColor: "#eef1f7",
     fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
     margin: "0",
     padding: "0",
@@ -54,8 +54,8 @@ export const s = {
   },
   // Appointment detail card
   detailBox: {
-    backgroundColor: "#fdf9f5",
-    border: "1px solid #ede8e2",
+    backgroundColor: "#eef1f7",
+    border: "1px solid #cdd5e3",
     borderRadius: "8px",
     padding: "18px 20px",
     margin: "0 0 20px",
@@ -63,20 +63,20 @@ export const s = {
   detailLabel: {
     fontSize: "11px",
     fontWeight: "700",
-    color: "#92400e",
+    color: "#22335b",
     letterSpacing: "1.5px",
     textTransform: "uppercase" as const,
     margin: "0 0 10px",
   },
   detailRow: {
     fontSize: "14px",
-    color: "#1c1917",
+    color: "#1c2d4a",
     margin: "0 0 5px",
     lineHeight: "1.5",
   },
   detailMuted: {
     fontSize: "13px",
-    color: "#78716c",
+    color: "#6b7fa3",
     margin: "0 0 5px",
     lineHeight: "1.5",
   },
@@ -112,7 +112,7 @@ export const s = {
     fontWeight: "500",
   },
   hr: {
-    borderTop: "1px solid #e8e3dd",
+    borderTop: "1px solid #cdd5e3",
     borderBottom: "none",
     margin: "24px 0",
   },
