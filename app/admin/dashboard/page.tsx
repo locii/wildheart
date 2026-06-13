@@ -31,6 +31,7 @@ export default async function DashboardPage() {
       .from("notifications")
       .select("id, appointment_id, type, channel, error, created_at, appointment:appointments(start_at, client:clients(first_name, last_name))")
       .eq("status", "failed")
+      .eq("resolved", false)
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false })
       .limit(20),

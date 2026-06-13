@@ -21,6 +21,10 @@ const TYPE_LABELS: Record<Notification["type"], string> = {
   reminder_1h: "Reminder 1h",
 };
 
+async function resolve(id: string) {
+  await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+}
+
 export function FailedNotificationsBanner({ initial }: { initial: FailedNotification[] }) {
   const [items, setItems] = useState(initial);
   const [retrying, setRetrying] = useState<Set<string>>(new Set());
@@ -44,11 +48,13 @@ export function FailedNotificationsBanner({ initial }: { initial: FailedNotifica
     setRetried((prev) => new Map(prev).set(item.id, result));
 
     if (result === "sent") {
+      await resolve(item.id);
       setTimeout(() => setItems((prev) => prev.filter((i) => i.id !== item.id)), 1500);
     }
   }
 
-  function dismiss(id: string) {
+  async function dismiss(id: string) {
+    await resolve(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
 
