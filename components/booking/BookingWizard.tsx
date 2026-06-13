@@ -29,7 +29,6 @@ export function BookingWizard({
   typeId,
   duration,
   price,
-  description,
 }: {
   locationSlug: string;
   typeSlug: string;
