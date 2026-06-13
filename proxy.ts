@@ -1,7 +1,32 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const SHORTCODE_RE = /^\/[a-km-z2-9]{7}$/;
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Short URL redirect — check before auth logic
+  if (SHORTCODE_RE.test(pathname)) {
+    const code = pathname.slice(1);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && serviceKey) {
+      try {
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/short_urls?code=eq.${code}&select=target_url&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+        );
+        const rows = await res.json() as { target_url: string }[];
+        if (rows?.[0]?.target_url) {
+          return NextResponse.redirect(rows[0].target_url, { status: 302 });
+        }
+      } catch {
+        // fall through to normal routing
+      }
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
