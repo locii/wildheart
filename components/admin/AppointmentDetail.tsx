@@ -36,7 +36,7 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
   const [notifyType, setNotifyType] = useState<AnyNotifyType>("booking");
   const [notifyChannels, setNotifyChannels] = useState({ email: true, sms: false });
   const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState<string | null>(null);
+  const [sendResult, setSendResult] = useState<{ ok: boolean; results: { channel: string; status: string; error?: string }[] } | null>(null);
 
   const start = toZonedTime(new Date(appt.start_at), appt.timezone);
   const end = toZonedTime(new Date(appt.end_at), appt.timezone);
@@ -73,7 +73,8 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: notifyType, channels }),
     });
-    setSendResult(res.ok ? "Sent successfully" : "Failed to send");
+    const data = await res.json().catch(() => ({ ok: false, results: [] }));
+    setSendResult(data);
     setSending(false);
   }
 
@@ -254,9 +255,13 @@ export function AppointmentDetail({ appointment: initial }: { appointment: Appoi
               </div>
             </div>
             {sendResult && (
-              <p className={`text-sm ${sendResult.includes("success") ? "text-green-600" : "text-red-600"}`}>
-                {sendResult}
-              </p>
+              <div className="space-y-1">
+                {sendResult.results.map((r) => (
+                  <p key={r.channel} className={`text-sm capitalize ${r.status === "sent" ? "text-green-600" : "text-red-600"}`}>
+                    {r.channel}: {r.status}{r.error ? ` — ${r.error}` : ""}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
           <div className="flex gap-2">

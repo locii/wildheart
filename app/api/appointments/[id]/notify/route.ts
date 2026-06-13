@@ -42,10 +42,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const token = await createAppointmentToken(supabase, appt.id, appt.start_at);
   const manageUrl = buildManageUrl(token);
 
-  await dispatch(supabase, body.type, appt, {
+  const results = await dispatch(supabase, body.type, appt, {
     channels: body.channels,
     manageUrl,
   });
 
-  return NextResponse.json({ ok: true });
+  const anyFailed = results.some((r) => r.status === "failed");
+  return NextResponse.json({ ok: !anyFailed, results });
 }

@@ -1,10 +1,11 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from "date-fns";
+import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow, subDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import type { AppointmentWithRelations } from "@/lib/supabase/types";
+import { FailedNotificationsBanner, type FailedNotification } from "@/components/admin/FailedNotificationsBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +17,27 @@ export default async function DashboardPage() {
   const weekStart = startOfDay(new Date());
   const weekEnd = endOfDay(addDays(weekStart, 6));
 
-  const { data } = await supabase
-    .from("appointments")
-    .select("*, client:clients(*), location:locations(*), type:appointment_types(*)")
-    .is("cancelled_at", null)
-    .gte("start_at", weekStart.toISOString())
-    .lte("start_at", weekEnd.toISOString())
-    .order("start_at");
+  const sevenDaysAgo = subDays(weekStart, 7).toISOString();
+
+  const [{ data }, { data: failedData }] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("*, client:clients(*), location:locations(*), type:appointment_types(*)")
+      .is("cancelled_at", null)
+      .gte("start_at", weekStart.toISOString())
+      .lte("start_at", weekEnd.toISOString())
+      .order("start_at"),
+    supabase
+      .from("notifications")
+      .select("id, appointment_id, type, channel, error, created_at, appointment:appointments(start_at, client:clients(first_name, last_name))")
+      .eq("status", "failed")
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
 
   const appointments = (data ?? []) as unknown as AppointmentWithRelations[];
+  const failedNotifications = (failedData ?? []) as unknown as FailedNotification[];
 
   // Group by calendar date in Melbourne timezone
   const grouped = new Map<string, AppointmentWithRelations[]>();
@@ -55,6 +68,8 @@ export default async function DashboardPage() {
           + New Appointment
         </Link>
       </div>
+
+      <FailedNotificationsBanner initial={failedNotifications} />
 
       <div className="space-y-1">
         {Array.from(grouped.entries()).map(([dateKey, appts]) => (

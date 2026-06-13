@@ -16,14 +16,17 @@ interface DispatchOptions {
   oldAppt?: AppointmentWithRelations;
 }
 
-/** Send notifications and log each one to the notifications table. */
+export type DispatchResult = { channel: "email" | "sms"; status: "sent" | "failed" | "skipped"; error?: string };
+
+/** Send notifications and log each one to the notifications table. Returns per-channel results. */
 export async function dispatch(
   supabase: SupabaseClient,
   type: NotificationType,
   appt: AppointmentWithRelations,
   options: DispatchOptions = {}
-) {
+): Promise<DispatchResult[]> {
   const channels = options.channels ?? ["email"];
+  const results: DispatchResult[] = [];
 
   // Fetch settings once upfront (only when SMS is a channel)
   const needsSmsSettings = channels.includes("sms");
@@ -74,5 +77,9 @@ export async function dispatch(
       status,
       error: errorMsg ?? null,
     });
+
+    results.push({ channel, status, error: errorMsg });
   }
+
+  return results;
 }
