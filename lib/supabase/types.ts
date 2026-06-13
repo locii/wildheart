@@ -9,6 +9,7 @@ export type Location = {
   timezone: string;
   color?: string | null;
   address?: string | null;
+  description?: string | null;
   is_active: boolean;
   created_at: string;
 };
@@ -23,6 +24,7 @@ export type AppointmentType = {
   is_active: boolean;
   is_public: boolean;
   sort_order: number;
+  description: string | null;
 };
 
 export type Client = {

@@ -13,7 +13,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
-  const body = await req.json() as { name: string; duration_minutes: number; price: number; location_id?: string | null };
+  const body = await req.json() as { name: string; duration_minutes: number; price: number; description?: string | null; location_id?: string | null };
 
   // Set sort_order to max + 1
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

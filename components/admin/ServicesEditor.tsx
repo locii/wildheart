@@ -5,12 +5,13 @@ import { Plus, Pencil, Check, X, Trash2, GripVertical, Eye, EyeOff } from "lucid
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import type { AppointmentType } from "@/lib/supabase/types";
 
-type Draft = { name: string; duration_minutes: string; price: string; slug: string };
+type Draft = { name: string; duration_minutes: string; price: string; slug: string; description: string };
 
-const emptyDraft = (): Draft => ({ name: "", duration_minutes: "", price: "", slug: "" });
+const emptyDraft = (): Draft => ({ name: "", duration_minutes: "", price: "", slug: "", description: "" });
 
 export function ServicesEditor() {
   const [types, setTypes] = useState<AppointmentType[]>([]);
@@ -32,7 +33,7 @@ export function ServicesEditor() {
 
   function startEdit(t: AppointmentType) {
     setEditingId(t.id);
-    setEditDraft({ name: t.name, duration_minutes: String(t.duration_minutes), price: String(t.price), slug: t.slug ?? "" });
+    setEditDraft({ name: t.name, duration_minutes: String(t.duration_minutes), price: String(t.price), slug: t.slug ?? "", description: t.description ?? "" });
     setAdding(false);
   }
 
@@ -46,6 +47,7 @@ export function ServicesEditor() {
         duration_minutes: parseInt(editDraft.duration_minutes),
         price: parseFloat(editDraft.price),
         slug: editDraft.slug.trim() || null,
+        description: editDraft.description.trim() || null,
       }),
     });
     setEditingId(null);
@@ -92,6 +94,7 @@ export function ServicesEditor() {
         duration_minutes: parseInt(addDraft.duration_minutes),
         price: parseFloat(addDraft.price),
         slug: addDraft.slug.trim() || null,
+        description: addDraft.description.trim() || null,
       }),
     });
     setAdding(false);
@@ -125,14 +128,21 @@ export function ServicesEditor() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">URL slug</Label>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground shrink-0">/appointments/</span>
-                    <Input
-                      value={editDraft.slug}
-                      onChange={(e) => setEditDraft({ ...editDraft, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })}
-                      placeholder="e.g. breathwork-3-hour"
-                    />
-                  </div>
+                  <Input
+                    value={editDraft.slug}
+                    onChange={(e) => setEditDraft({ ...editDraft, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })}
+                    placeholder="e.g. breathwork-3-hour"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Description <span className="text-muted-foreground font-normal">(HTML supported)</span></Label>
+                  <Textarea
+                    value={editDraft.description}
+                    onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })}
+                    rows={3}
+                    placeholder="<p>Describe this service…</p>"
+                    className="font-mono text-xs"
+                  />
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" onClick={() => saveEdit(t.id)} disabled={saving || !editDraft.name.trim()}>
@@ -213,14 +223,21 @@ export function ServicesEditor() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">URL slug</Label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground shrink-0">/appointments/</span>
-              <Input
-                placeholder="e.g. breathwork-3-hour"
-                value={addDraft.slug}
-                onChange={(e) => setAddDraft({ ...addDraft, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })}
-              />
-            </div>
+            <Input
+              placeholder="e.g. breathwork-3-hour"
+              value={addDraft.slug}
+              onChange={(e) => setAddDraft({ ...addDraft, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Description <span className="text-muted-foreground font-normal">(HTML supported)</span></Label>
+            <Textarea
+              value={addDraft.description}
+              onChange={(e) => setAddDraft({ ...addDraft, description: e.target.value })}
+              rows={3}
+              placeholder="<p>Describe this service…</p>"
+              className="font-mono text-xs"
+            />
           </div>
           <div className="flex gap-2 pt-1">
             <Button size="sm" onClick={addType} disabled={saving || !addDraft.name.trim() || !addDraft.duration_minutes}>

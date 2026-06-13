@@ -9,10 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { locationColor, COLOR_SWATCHES } from "@/lib/location-colors";
 import type { Location } from "@/lib/supabase/types";
 
-type Draft = { name: string; timezone: string; color: string | null; address: string };
-type NewDraft = { name: string; slug: string; timezone: string; color: string | null; address: string };
+type Draft = { name: string; timezone: string; color: string | null; address: string; description: string };
+type NewDraft = { name: string; slug: string; timezone: string; color: string | null; address: string; description: string };
 
-const emptyNew = (): NewDraft => ({ name: "", slug: "", timezone: "Australia/Melbourne", color: null, address: "" });
+const emptyNew = (): NewDraft => ({ name: "", slug: "", timezone: "Australia/Melbourne", color: null, address: "", description: "" });
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -41,7 +41,7 @@ export function LocationsEditor() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<Draft>({ name: "", timezone: "", color: null, address: "" });
+  const [editDraft, setEditDraft] = useState<Draft>({ name: "", timezone: "", color: null, address: "", description: "" });
   const [adding, setAdding] = useState(false);
   const [newDraft, setNewDraft] = useState<NewDraft>(emptyNew());
   const [saving, setSaving] = useState(false);
@@ -58,7 +58,7 @@ export function LocationsEditor() {
 
   function startEdit(l: Location) {
     setEditingId(l.id);
-    setEditDraft({ name: l.name, timezone: l.timezone, color: l.color ?? null, address: l.address ?? "" });
+    setEditDraft({ name: l.name, timezone: l.timezone, color: l.color ?? null, address: l.address ?? "", description: l.description ?? "" });
     setAdding(false);
     setDeleteError(null);
   }
@@ -68,7 +68,7 @@ export function LocationsEditor() {
     await fetch(`/api/locations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editDraft.name.trim(), timezone: editDraft.timezone.trim(), color: editDraft.color, address: editDraft.address.trim() || null }),
+      body: JSON.stringify({ name: editDraft.name.trim(), timezone: editDraft.timezone.trim(), color: editDraft.color, address: editDraft.address.trim() || null, description: editDraft.description.trim() || null }),
     });
     setEditingId(null);
     await load();
@@ -145,6 +145,16 @@ export function LocationsEditor() {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Colour</Label>
                     <ColorPicker value={editDraft.color} onChange={(c) => setEditDraft({ ...editDraft, color: c })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description <span className="text-muted-foreground font-normal">(HTML supported)</span></Label>
+                    <Textarea
+                      rows={3}
+                      value={editDraft.description}
+                      onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })}
+                      placeholder="<p>Describe this location…</p>"
+                      className="font-mono text-xs resize-none"
+                    />
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Slug: <code className="bg-muted px-1 rounded">{l.slug}</code>

@@ -14,7 +14,8 @@ export default async function WizardLayout({
   const supabase = createServiceClient();
 
   const { data: locData } = await supabase.from("locations").select("*").eq("slug", slug).maybeSingle();
-  if (!(locData as Location | null)) notFound();
+  const location = locData as Location | null;
+  if (!location) notFound();
 
   const { data: typesData } = await supabase.from("appointment_types").select("*");
   const apptType = ((typesData ?? []) as AppointmentType[]).find(
@@ -24,9 +25,11 @@ export default async function WizardLayout({
 
   return (
     <BookingShell backHref={`/${slug}`}>
-      <div className="px-8 pt-7 pb-1 text-center">
-        <p className="text-xs uppercase tracking-widest text-gray-400 mb-0.5">Wildheart Psychotherapy</p>
-        <h1 className="text-xl font-semibold text-gray-900">Make a booking</h1>
+      <div className="px-8 py-8 text-center">
+        <h1 className="text-xl font-semibold text-gray-900">Wildheart Psychotherapy — {location.name}</h1>
+        {location.address && (
+          <p className="text-sm text-stone-400 mt-0.5">{location.address}</p>
+        )}
       </div>
       {children}
     </BookingShell>

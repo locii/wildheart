@@ -46,10 +46,11 @@ export default async function LocationPage({
 
   return (
     <BookingShell backHref="/">
-      <div className="px-8 pt-8 pb-2 text-center">
-        <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Wildheart Psychotherapy</p>
-        <h1 className="text-xl font-semibold text-gray-900">Make a booking</h1>
-        <p className="text-sm text-stone-400 mt-0.5">{location.name}</p>
+      <div className="px-8 py-8 text-center">
+        <h1 className="text-xl font-semibold text-gray-900">Wildheart Psychotherapy — {location.name}</h1>
+        {location.address && (
+          <p className="text-sm text-stone-400 mt-0.5">{location.address}</p>
+        )}
       </div>
       <div className="h-1 bg-stone-100" />
       <div className="p-5 space-y-2">
@@ -62,6 +63,7 @@ export default async function LocationPage({
               className="flex flex-col w-full p-4 rounded-xl border border-stone-200 hover:border-amber-400 hover:bg-amber-50/50 transition-colors text-left"
             >
               <div className="font-medium text-sm text-stone-800">{t.name}</div>
+              
               <div className="flex items-center gap-3 mt-1.5">
                 <span className="flex items-center gap-1 text-xs text-stone-500">
                   <Clock className="h-3 w-3" />{t.duration_minutes} min

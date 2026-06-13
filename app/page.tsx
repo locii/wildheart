@@ -16,9 +16,8 @@ export default async function RootPage() {
 
   return (
     <BookingShell>
-      <div className="px-8 pt-8 pb-2 text-center">
-        <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Wildheart Psychotherapy</p>
-        <h1 className="text-xl font-semibold text-gray-900">Make a booking</h1>
+      <div className="px-8 py-8 text-center">
+        <h1 className="text-xl font-semibold text-gray-900">Wildheart Psychotherapy</h1>
         <p className="text-sm text-stone-400 mt-0.5">Choose a location to get started</p>
       </div>
       <div className="p-5 space-y-2">
