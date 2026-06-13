@@ -1,4 +1,5 @@
-import Link from "next/link";
+"use client";
+
 import { ArrowLeft } from "lucide-react";
 
 const BG =
@@ -6,8 +7,6 @@ const BG =
 
 export function BookingShell({
   children,
-  backHref = "/",
-  backLabel = "Back to site",
   maxWidth = "max-w-xl",
 }: {
   children: React.ReactNode;
@@ -21,13 +20,13 @@ export function BookingShell({
       style={{ backgroundImage: `url(${BG})` }}
     >
       <div className={`w-full ${maxWidth}`}>
-        <Link
-          href={backHref}
+        <button
+          onClick={() => window.history.back()}
           className="inline-flex items-center gap-1.5 text-white/80 hover:text-white text-sm mb-4 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          {backLabel}
-        </Link>
+          Back
+        </button>
         <div className="theme-light bg-white rounded-3xl shadow-2xl overflow-hidden">
           {children}
         </div>
