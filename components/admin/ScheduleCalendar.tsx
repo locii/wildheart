@@ -1139,6 +1139,7 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
   const [newClient, setNewClient] = useState({ first_name: "", last_name: "", phone: "", email: "" });
   const [typeId, setTypeId] = useState(types[0]?.id ?? "");
   const [locationSlug, setLocationSlug] = useState(locations[0]?.slug ?? "");
+  const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1173,6 +1174,7 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
         locationSlug, typeId,
         start: selection.start.toISOString(),
         client, source: "admin", scheduledBy: "admin",
+        quiet: !notify,
       }),
     });
     const json = await res.json();
@@ -1248,6 +1250,15 @@ function BookTab({ selection, types, locations, onCreated, onClose }: {
         </div>
       </div>
 
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={notify}
+          onChange={(e) => setNotify(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-gray-300 accent-primary"
+        />
+        <span className="text-xs text-muted-foreground">Send confirmation email &amp; SMS to client</span>
+      </label>
       {error && <p className="text-xs text-red-500">{error}</p>}
       <div className="flex gap-2 pt-1">
         <Button onClick={book} disabled={!hasClient || saving} className="flex-1 bg-chart-1 hover:bg-chart-1/85 text-white border-transparent" size="sm">
