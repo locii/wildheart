@@ -70,8 +70,9 @@ export default function ReschedulePage() {
             phone: appt.client.phone ?? "",
             email: appt.client.email,
           },
-          source: "reschedule",
+          source: "self-book",
           scheduledBy: "client-self",
+          isReschedule: true,
         }),
       }),
     ]);

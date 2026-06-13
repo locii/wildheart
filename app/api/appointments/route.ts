@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
   const body = await req.json();
 
-  const { locationSlug, typeId, start, client: clientData, source = "self-book", scheduledBy = "client-self", quiet = false } = body as {
+  const { locationSlug, typeId, start, client: clientData, source = "self-book", scheduledBy = "client-self", quiet = false, isReschedule = false } = body as {
     locationSlug: string;
     typeId: string;
     start: string;
@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
     source?: string;
     scheduledBy?: string;
     quiet?: boolean;
+    isReschedule?: boolean;
   };
 
   // Resolve location
@@ -205,10 +206,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Notify admin on client-initiated bookings and reschedules
-  if (source === "self-book" || source === "embed" || source === "reschedule") {
+  if (source === "self-book" || source === "embed") {
     const { date, time } = formatApptDateTime(appt.start_at, appt.end_at, location.timezone);
     const clientName = `${client.first_name} ${client.last_name}`;
-    const isReschedule = source === "reschedule";
     const msg = isReschedule
       ? `${clientName} rescheduled their ${apptType.name} to ${date} at ${time}`
       : `New booking: ${clientName} – ${apptType.name} on ${date} at ${time}`;
