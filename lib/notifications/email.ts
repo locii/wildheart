@@ -13,7 +13,12 @@ function getResend(): Resend {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? "missing");
   return _resend;
 }
-const FROM = () => process.env.RESEND_FROM_EMAIL ?? "appointments@yourdomain.com";
+const FROM_NAME = () => process.env.RESEND_FROM_NAME ?? "Wildheart Psychotherapy";
+const FROM = () => {
+  const email = process.env.RESEND_FROM_EMAIL ?? "appointments@yourdomain.com";
+  const name = FROM_NAME();
+  return name ? `${name} <${email}>` : email;
+};
 const ADMIN_EMAIL = () => process.env.ADMIN_NOTIFY_EMAIL ?? "";
 
 /** Send a plain notification email to the admin. Fire and forget. */
